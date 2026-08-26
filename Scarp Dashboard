@@ -1,246 +1,302 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-import os
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Scrap Analytics Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (XLSX) CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Google Font (Kanit) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #0B0E14; color: #E2E8F0; }
+        .card { background-color: #151A23; border: 1px solid #262D3D; border-radius: 1rem; }
+        .glass-header { background: rgba(21, 26, 35, 0.8); backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
 
-# ==========================================
-# 1. ตั้งค่าหน้าเพจและ Styling ให้เหมือนตัวอย่าง
-# ==========================================
-st.set_page_config(
-    page_title="Production Scrap Dashboard",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Custom CSS ตกแต่งธีมมืดและทรงการ์ด (Dark Dashboard Style)
-st.markdown("""
-<style>
-    /* ปรับพื้นหลังหลัก */
-    .stApp {
-        background-color: #0B0E14;
-        color: #E2E8F0;
-    }
-    
-    /* ปรับการ์ดแสดงผล KPI */
-    div[data-testid="stMetric"] {
-        background-color: #151A23;
-        border: 1px solid #262D3D;
-        padding: 16px 20px;
-        border-radius: 14px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    
-    div[data-testid="stMetricLabel"] {
-        color: #94A3B8 !important;
-        font-size: 14px !important;
-        font-weight: 500 !important;
-    }
-    
-    div[data-testid="stMetricValue"] {
-        color: #F8FAFC !important;
-        font-size: 24px !important;
-        font-weight: 700 !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-EXCEL_FILE = "Scrap.xlsx"
-
-# ==========================================
-# 2. โหลดและจัดการข้อมูล
-# ==========================================
-@st.cache_data(ttl=2)
-def load_data():
-    if os.path.exists(EXCEL_FILE):
-        df = pd.read_excel(
-            EXCEL_FILE, 
-            usecols=['Date', 'Month', 'Shift', 'Material', 'Model', 'Material name', 'Quantity', 'Problem', 'Pic', 'Department', 'Price']
-        )
-        df = df.dropna(how='all')
-        df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce').fillna(0)
-        df['Price'] = pd.to_numeric(df['Price'], errors='coerce').fillna(0)
-        df['Amt.'] = df['Quantity'] * df['Price']
-        return df
-    return pd.DataFrame()
-
-def save_data(new_df):
-    new_df.to_excel(EXCEL_FILE, index=False)
-    st.cache_data.clear()
-
-df = load_data()
-
-# ==========================================
-# 3. Sidebar (ตัวกรอง + ฟอร์มกรอกข้อมูล)
-# ==========================================
-st.sidebar.title("🎛️ Control Panel")
-
-# --- Filters ---
-st.sidebar.markdown("### 🔍 ตัวกรองข้อมูล")
-if not df.empty:
-    month_list = df['Month'].dropna().unique().tolist()
-    selected_month = st.sidebar.multiselect("📅 เลือกเดือน (Month)", options=month_list, default=month_list)
-    
-    day_list = sorted(df['Date'].dropna().unique().tolist())
-    selected_day = st.sidebar.multiselect("🗓️ เลือกวันที่ (Day)", options=day_list, default=day_list)
-    
-    shift_list = df['Shift'].dropna().unique().tolist()
-    selected_shift = st.sidebar.multiselect("⏰ เลือกกะ (Shift)", options=shift_list, default=shift_list)
-else:
-    selected_month, selected_day, selected_shift = [], [], []
-
-st.sidebar.markdown("---")
-
-# --- Quick Data Entry ---
-st.sidebar.markdown("### 📝 บันทึกข้อมูลเรียลไทม์")
-with st.sidebar.form("entry_form", clear_on_submit=True):
-    f_date = st.number_input("วันที่ (Date)", min_value=1, max_value=31, value=1)
-    f_month = st.selectbox("เดือน (Month)", ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], index=7)
-    f_shift = st.selectbox("กะ (Shift)", ["Day Shift", "Night Shift"])
-    f_dept = st.text_input("แผนก (Department)", placeholder="เช่น PD-B, TF")
-    f_mat = st.text_input("รหัสวัสดุ (Material)")
-    f_model = st.text_input("โมเดล (Model)")
-    f_mat_name = st.text_input("ชื่อวัสดุ (Material Name)")
-    f_prob = st.text_input("ปัญหาที่พบ (Problem)")
-    f_pic = st.text_input("ผู้รับผิดชอบ (Pic)")
-    f_qty = st.number_input("จำนวน (ชิ้น)", min_value=1, step=1)
-    f_price = st.number_input("ราคาต่อหน่วย", min_value=0.0)
-    
-    submit = st.form_submit_button("💾 บันทึกข้อมูลเข้า Excel")
-    if submit:
-        new_row = pd.DataFrame([{
-            'Date': f_date,
-            'Month': f_month,
-            'Shift': f_shift,
-            'Material': f_mat,
-            'Model': f_model,
-            'Material name': f_mat_name,
-            'Quantity': f_qty,
-            'Problem': f_prob,
-            'Pic': f_pic,
-            'Department': f_dept,
-            'Price': f_price
-        }])
-        updated = pd.concat([df.drop(columns=['Amt.'], errors='ignore'), new_row], ignore_index=True)
-        save_data(updated)
-        st.sidebar.success("บันทึกสำเร็จ!")
-        st.rerun()
-
-# กรองข้อมูล
-filtered_df = df.copy()
-if not filtered_df.empty:
-    if selected_month:
-        filtered_df = filtered_df[filtered_df['Month'].isin(selected_month)]
-    if selected_day:
-        filtered_df = filtered_df[filtered_df['Date'].isin(selected_day)]
-    if selected_shift:
-        filtered_df = filtered_df[filtered_df['Shift'].isin(selected_shift)]
-
-# ==========================================
-# 4. Main Dashboard Layout (โทนสีสไตล์ Reference)
-# ==========================================
-st.markdown("<h1 style='color:#F8FAFC; margin-bottom: 5px;'>Dashboard</h1>", unsafe_allow_html=True)
-st.markdown("<p style='color:#94A3B8; margin-bottom: 25px;'>Production Defect & Scrap Expense Analytics</p>", unsafe_allow_html=True)
-
-if filtered_df.empty:
-    st.warning("ไม่พบข้อมูลตามตัวกรองที่เลือก")
-else:
-    # --- Top 4 Metric Cards ---
-    total_cost = filtered_df['Amt.'].sum()
-    total_qty = filtered_df['Quantity'].sum()
-    total_cases = len(filtered_df)
-    top_prob = filtered_df.groupby('Problem')['Quantity'].sum().idxmax() if not filtered_df['Problem'].isnull().all() else "-"
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Total Scrap Expenses", f"฿ {total_cost:,.2f}")
-    m2.metric("Total Defect Quantity", f"{total_qty:,.0f} pcs")
-    m3.metric("Total Incidents", f"{total_cases} cases")
-    m4.metric("Top Defect Cause", str(top_prob))
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # --- Middle Row Charts ---
-    c_left, c_right = st.columns([6, 4])
-
-    with c_left:
-        st.markdown("<h4 style='color:#E2E8F0;'>📊 Sales & Scrap Daily Analytics</h4>", unsafe_allow_html=True)
-        daily_df = filtered_df.groupby('Date')['Amt.'].sum().reset_index()
-        fig_bar = px.bar(
-            daily_df, x='Date', y='Amt.',
-            text_auto='.2s',
-            color='Amt.',
-            color_continuous_scale=['#4F46E5', '#818CF8', '#C084FC']
-        )
-        fig_bar.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#94A3B8'),
-            margin=dict(l=10, r=10, t=20, b=10),
-            coloraxis_showscale=False,
-            xaxis=dict(type='category', showgrid=False),
-            yaxis=dict(showgrid=True, gridcolor='#1E293B')
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
-
-    with c_right:
-        st.markdown("<h4 style='color:#E2E8F0;'>🍩 Expenses by Department</h4>", unsafe_allow_html=True)
-        dept_df = filtered_df.groupby('Department')['Amt.'].sum().reset_index()
+    <!-- Top Navigation & Upload -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 glass-header p-4 rounded-2xl border border-[#262D3D] sticky top-2 z-50">
+        <div>
+            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span> Dashboard
+            </h1>
+            <p class="text-xs text-slate-400">Production Defect & Scrap Expense Analytics</p>
+        </div>
         
-        fig_donut = go.Figure(data=[go.Pie(
-            labels=dept_df['Department'],
-            values=dept_df['Amt.'],
-            hole=.65,
-            marker_colors=['#6366F1', '#A855F7', '#EC4899', '#3B82F6', '#10B981', '#F59E0B'],
-            textinfo='percent+label',
-            insidetextorientation='radial'
-        )])
-        
-        # ใส่ตัวเลขยอดรวมตรงกลางโดนัทแบบในรูปตัวอย่าง
-        fig_donut.add_annotation(
-            text=f"<b>฿{total_cost:,.0f}</b><br><span style='font-size:12px;color:#94A3B8;'>Total Expense</span>",
-            x=0.5, y=0.5, font_size=15, font_color="#F8FAFC", showarrow=False
-        )
-        
-        fig_donut.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#94A3B8'),
-            margin=dict(l=10, r=10, t=20, b=10),
-            showlegend=False
-        )
-        st.plotly_chart(fig_donut, use_container_width=True)
+        <div class="flex items-center gap-3">
+            <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+                📂 เลือกไฟล์ Scrap.xlsx
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileUpload(event)">
+            </label>
+        </div>
+    </header>
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto space-y-6">
 
-    # --- Bottom Row: Top 5 Issues & Data Table ---
-    c_b1, c_b2 = st.columns([5, 5])
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="card p-5">
+                <p class="text-xs text-slate-400 font-medium">Total Scrap Expenses</p>
+                <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalCost">฿0.00</h3>
+                <span class="text-[10px] text-indigo-400 font-semibold mt-2 inline-block">● Calculated from Quantity × Price</span>
+            </div>
+            <div class="card p-5">
+                <p class="text-xs text-slate-400 font-medium">Total Defect Quantity</p>
+                <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalQty">0 pcs</h3>
+                <span class="text-[10px] text-emerald-400 font-semibold mt-2 inline-block">● Total defect units recorded</span>
+            </div>
+            <div class="card p-5">
+                <p class="text-xs text-slate-400 font-medium">Total Incidents</p>
+                <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalCases">0 cases</h3>
+                <span class="text-[10px] text-purple-400 font-semibold mt-2 inline-block">● Recorded defect entries</span>
+            </div>
+            <div class="card p-5">
+                <p class="text-xs text-slate-400 font-medium">Top Defect Cause</p>
+                <h3 class="text-lg font-bold text-white mt-1 truncate" id="kpiTopProblem">-</h3>
+                <span class="text-[10px] text-rose-400 font-semibold mt-2 inline-block">● Highest quantity defect type</span>
+            </div>
+        </div>
 
-    with c_b1:
-        st.markdown("<h4 style='color:#E2E8F0;'>⚠️ Top 5 Problem Issues</h4>", unsafe_allow_html=True)
-        top_problems = filtered_df.groupby('Problem')['Quantity'].sum().reset_index().sort_values(by='Quantity', ascending=True).tail(5)
-        fig_prob = px.bar(
-            top_problems, y='Problem', x='Quantity', orientation='h',
-            text='Quantity',
-            color='Quantity',
-            color_continuous_scale=['#38BDF8', '#818CF8']
-        )
-        fig_prob.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#94A3B8'),
-            margin=dict(l=10, r=10, t=20, b=10),
-            coloraxis_showscale=False,
-            xaxis=dict(showgrid=True, gridcolor='#1E293B'),
-            yaxis=dict(showgrid=False)
-        )
-        st.plotly_chart(fig_prob, use_container_width=True)
+        <!-- Middle Row: Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Daily Bar Chart -->
+            <div class="card p-6 lg:col-span-2">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-semibold text-slate-200">📊 Daily Expense Analytics</h3>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
 
-    with c_b2:
-        st.markdown("<h4 style='color:#E2E8F0;'>📋 Live Raw Data Log</h4>", unsafe_allow_html=True)
-        st.dataframe(
-            filtered_df[['Date', 'Month', 'Shift', 'Department', 'Material name', 'Problem', 'Quantity', 'Amt.']]
-            .sort_values(by=['Month', 'Date'], ascending=[False, False])
-            .head(10),
-            use_container_width=True,
-            height=290
-        )
+            <!-- Department Donut Chart -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-semibold text-slate-200">🍩 Expenses by Department</h3>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Top Problems & Raw Data Table -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Top Problems Horizontal Bar Chart -->
+            <div class="card p-6">
+                <h3 class="text-base font-semibold text-slate-200 mb-4">⚠️ Top 5 Defect Problems</h3>
+                <div class="h-64 relative">
+                    <canvas id="problemChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Log Table -->
+            <div class="card p-6 flex flex-col justify-between">
+                <h3 class="text-base font-semibold text-slate-200 mb-4">📋 Recent Data Records</h3>
+                <div class="overflow-x-auto h-64">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="text-slate-400 bg-[#1E2532] uppercase sticky top-0">
+                            <tr>
+                                <th class="py-2 px-3">Date</th>
+                                <th class="py-2 px-3">Dept</th>
+                                <th class="py-2 px-3">Problem</th>
+                                <th class="py-2 px-3 text-right">Qty</th>
+                                <th class="py-2 px-3 text-right">Amt (฿)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-[#262D3D]">
+                            <tr>
+                                <td colspan="5" class="text-center py-8 text-slate-500">กรุณาเลือกไฟล์ Scrap.xlsx เพื่อเริ่มแสดงข้อมูล</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let dailyChartInstance = null;
+        let deptChartInstance = null;
+        let problemChartInstance = null;
+
+        // ฟังก์ชันอ่านไฟล์ Excel
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // แปลงเป็น JSON
+                let jsonData = XLSX.utils.sheet_to_json(worksheet);
+                processAndRenderData(jsonData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ประมวลผลและอัปเดต Dashboard
+        function processAndRenderData(data) {
+            let totalCost = 0;
+            let totalQty = 0;
+            let dailyMap = {};
+            let deptMap = {};
+            let probMap = {};
+            let cleanRows = [];
+
+            data.forEach(row => {
+                let qty = parseFloat(row['Quantity']) || 0;
+                let price = parseFloat(row['Price']) || 0;
+                let amt = qty * price;
+                let date = row['Date'] || 'Unknown';
+                let dept = row['Department'] || 'N/A';
+                let prob = row['Problem'] || 'N/A';
+
+                if (qty > 0 || price > 0) {
+                    totalCost += amt;
+                    totalQty += qty;
+
+                    // Group Daily
+                    dailyMap[date] = (dailyMap[date] || 0) + amt;
+                    // Group Dept
+                    deptMap[dept] = (deptMap[dept] || 0) + amt;
+                    // Group Problem
+                    probMap[prob] = (probMap[prob] || 0) + qty;
+
+                    cleanRows.push({ date, dept, prob, qty, amt });
+                }
+            });
+
+            // 1. Update Metrics
+            document.getElementById('kpiTotalCost').innerText = '฿' + totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('kpiTotalQty').innerText = totalQty.toLocaleString() + ' pcs';
+            document.getElementById('kpiTotalCases').innerText = cleanRows.length + ' cases';
+
+            let topProblem = Object.keys(probMap).reduce((a, b) => probMap[a] > probMap[b] ? a : b, '-');
+            document.getElementById('kpiTopProblem').innerText = topProblem;
+
+            // 2. Render Charts
+            renderDailyChart(dailyMap);
+            renderDeptChart(deptMap, totalCost);
+            renderProblemChart(probMap);
+
+            // 3. Render Data Table
+            renderTable(cleanRows);
+        }
+
+        function renderDailyChart(dailyMap) {
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+            if (dailyChartInstance) dailyChartInstance.destroy();
+
+            const labels = Object.keys(dailyMap);
+            const dataValues = Object.values(dailyMap);
+
+            dailyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Expenses (฿)',
+                        data: dataValues,
+                        backgroundColor: '#6366F1',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
+                        y: { grid: { color: '#1E293B' }, ticks: { color: '#94A3B8' } }
+                    }
+                }
+            });
+        }
+
+        function renderDeptChart(deptMap, totalCost) {
+            const ctx = document.getElementById('deptChart').getContext('2d');
+            if (deptChartInstance) deptChartInstance.destroy();
+
+            deptChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(deptMap),
+                    datasets: [{
+                        data: Object.values(deptMap),
+                        backgroundColor: ['#6366F1', '#A855F7', '#EC4899', '#3B82F6', '#10B981', '#F59E0B'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: '#94A3B8', font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+
+        function renderProblemChart(probMap) {
+            const ctx = document.getElementById('problemChart').getContext('2d');
+            if (problemChartInstance) problemChartInstance.destroy();
+
+            // Sort Top 5
+            const sorted = Object.entries(probMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+            problemChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(item => item[0]),
+                    datasets: [{
+                        label: 'Defect Quantity',
+                        data: sorted.map(item => item[1]),
+                        backgroundColor: '#38BDF8',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: '#1E293B' }, ticks: { color: '#94A3B8' } },
+                        y: { grid: { display: false }, ticks: { color: '#94A3B8' } }
+                    }
+                }
+            });
+        }
+
+        function renderTable(rows) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            rows.slice(0, 10).forEach(r => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-[#1E2532] transition">
+                        <td class="py-2 px-3 font-medium text-white">${r.date}</td>
+                        <td class="py-2 px-3">${r.dept}</td>
+                        <td class="py-2 px-3 truncate max-w-[150px]">${r.prob}</td>
+                        <td class="py-2 px-3 text-right text-indigo-400 font-semibold">${r.qty}</td>
+                        <td class="py-2 px-3 text-right text-emerald-400 font-semibold">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
