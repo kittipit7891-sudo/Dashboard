@@ -16,12 +16,14 @@
         body { font-family: 'Kanit', sans-serif; background-color: #0B0E14; color: #E2E8F0; }
         .card { background-color: #151A23; border: 1px solid #262D3D; border-radius: 1rem; }
         .glass-header { background: rgba(21, 26, 35, 0.8); backdrop-filter: blur(12px); }
+        select { background-color: #1E2532; color: #E2E8F0; border: 1px solid #334155; }
+        select:focus { outline: none; border-color: #6366F1; }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
     <!-- Top Navigation & Upload -->
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 glass-header p-4 rounded-2xl border border-[#262D3D] sticky top-2 z-50">
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 glass-header p-4 rounded-2xl border border-[#262D3D] sticky top-2 z-50">
         <div>
             <h1 class="text-2xl font-bold text-white flex items-center gap-2">
                 <span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span> Dashboard
@@ -37,6 +39,52 @@
         </div>
     </header>
 
+    <!-- Filter Bar -->
+    <section class="card p-4 mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+            <span class="text-sm font-semibold text-slate-300 flex items-center gap-1.5">
+                🔍 ตัวกรองข้อมูล:
+            </span>
+            
+            <!-- Year Filter -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">ปี:</label>
+                <select id="filterYear" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <option value="ALL">ทั้งหมด (All Years)</option>
+                </select>
+            </div>
+
+            <!-- Month Filter -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">เดือน:</label>
+                <select id="filterMonth" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <option value="ALL">ทั้งหมด (All Months)</option>
+                </select>
+            </div>
+
+            <!-- Date Filter -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">วันที่:</label>
+                <select id="filterDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <option value="ALL">ทั้งหมด (All Dates)</option>
+                </select>
+            </div>
+
+            <!-- Shift Filter -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">กะการทำงาน:</label>
+                <select id="filterShift" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <option value="ALL">ทั้งหมด (All Shifts)</option>
+                </select>
+            </div>
+
+            <!-- Reset Button -->
+            <button onclick="resetFilters()" class="ml-auto text-xs text-indigo-400 hover:text-indigo-300 font-medium underline">
+                ล้างตัวกรองทั้งหมด
+            </button>
+        </div>
+    </section>
+
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto space-y-6">
 
@@ -45,42 +93,36 @@
             <div class="card p-5">
                 <p class="text-xs text-slate-400 font-medium">Total Scrap Expenses</p>
                 <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalCost">฿0.00</h3>
-                <span class="text-[10px] text-indigo-400 font-semibold mt-2 inline-block">● Calculated from Quantity × Price</span>
+                <span class="text-[10px] text-indigo-400 font-semibold mt-2 inline-block">● Quantity × Price</span>
             </div>
             <div class="card p-5">
                 <p class="text-xs text-slate-400 font-medium">Total Defect Quantity</p>
                 <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalQty">0 pcs</h3>
-                <span class="text-[10px] text-emerald-400 font-semibold mt-2 inline-block">● Total defect units recorded</span>
+                <span class="text-[10px] text-emerald-400 font-semibold mt-2 inline-block">● Total defect units</span>
             </div>
             <div class="card p-5">
                 <p class="text-xs text-slate-400 font-medium">Total Incidents</p>
                 <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalCases">0 cases</h3>
-                <span class="text-[10px] text-purple-400 font-semibold mt-2 inline-block">● Recorded defect entries</span>
+                <span class="text-[10px] text-purple-400 font-semibold mt-2 inline-block">● Total entries</span>
             </div>
             <div class="card p-5">
                 <p class="text-xs text-slate-400 font-medium">Top Defect Cause</p>
                 <h3 class="text-lg font-bold text-white mt-1 truncate" id="kpiTopProblem">-</h3>
-                <span class="text-[10px] text-rose-400 font-semibold mt-2 inline-block">● Highest quantity defect type</span>
+                <span class="text-[10px] text-rose-400 font-semibold mt-2 inline-block">● Highest defect quantity</span>
             </div>
         </div>
 
         <!-- Middle Row: Charts -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Daily Bar Chart -->
             <div class="card p-6 lg:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-semibold text-slate-200">📊 Daily Expense Analytics</h3>
-                </div>
+                <h3 class="text-base font-semibold text-slate-200 mb-4">📊 Daily Expense Analytics</h3>
                 <div class="h-64 relative">
                     <canvas id="dailyChart"></canvas>
                 </div>
             </div>
 
-            <!-- Department Donut Chart -->
             <div class="card p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-semibold text-slate-200">🍩 Expenses by Department</h3>
-                </div>
+                <h3 class="text-base font-semibold text-slate-200 mb-4">🍩 Expenses by Department</h3>
                 <div class="h-64 relative">
                     <canvas id="deptChart"></canvas>
                 </div>
@@ -89,7 +131,6 @@
 
         <!-- Bottom Row: Top Problems & Raw Data Table -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Top Problems Horizontal Bar Chart -->
             <div class="card p-6">
                 <h3 class="text-base font-semibold text-slate-200 mb-4">⚠️ Top 5 Defect Problems</h3>
                 <div class="h-64 relative">
@@ -97,7 +138,6 @@
                 </div>
             </div>
 
-            <!-- Data Log Table -->
             <div class="card p-6 flex flex-col justify-between">
                 <h3 class="text-base font-semibold text-slate-200 mb-4">📋 Recent Data Records</h3>
                 <div class="overflow-x-auto h-64">
@@ -105,6 +145,8 @@
                         <thead class="text-slate-400 bg-[#1E2532] uppercase sticky top-0">
                             <tr>
                                 <th class="py-2 px-3">Date</th>
+                                <th class="py-2 px-3">Month</th>
+                                <th class="py-2 px-3">Shift</th>
                                 <th class="py-2 px-3">Dept</th>
                                 <th class="py-2 px-3">Problem</th>
                                 <th class="py-2 px-3 text-right">Qty</th>
@@ -113,7 +155,7 @@
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
                             <tr>
-                                <td colspan="5" class="text-center py-8 text-slate-500">กรุณาเลือกไฟล์ Scrap.xlsx เพื่อเริ่มแสดงข้อมูล</td>
+                                <td colspan="7" class="text-center py-8 text-slate-500">กรุณาเลือกไฟล์ Scrap.xlsx เพื่อเริ่มแสดงข้อมูล</td>
                             </tr>
                         </tbody>
                     </table>
@@ -124,11 +166,11 @@
     </main>
 
     <script>
+        let rawExcelData = [];
         let dailyChartInstance = null;
         let deptChartInstance = null;
         let problemChartInstance = null;
 
-        // ฟังก์ชันอ่านไฟล์ Excel
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -140,76 +182,112 @@
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 
-                // แปลงเป็น JSON
                 let jsonData = XLSX.utils.sheet_to_json(worksheet);
-                processAndRenderData(jsonData);
+                
+                rawExcelData = jsonData.map(row => {
+                    let qty = parseFloat(row['Quantity']) || 0;
+                    let price = parseFloat(row['Price']) || 0;
+                    return {
+                        date: row['Date'] !== undefined ? row['Date'] : 'Unknown',
+                        month: row['Month'] || 'Unknown',
+                        year: row['Year'] || (row['Date'] && String(row['Date']).length > 4 ? new Date(row['Date']).getFullYear() : '2024'),
+                        shift: row['Shift'] || 'N/A',
+                        dept: row['Department'] || 'N/A',
+                        prob: row['Problem'] || 'N/A',
+                        qty: qty,
+                        price: price,
+                        amt: qty * price
+                    };
+                }).filter(r => r.qty > 0 || r.price > 0);
+
+                populateFilterDropdowns(rawExcelData);
+                applyFilters();
             };
             reader.readAsArrayBuffer(file);
         }
 
-        // ประมวลผลและอัปเดต Dashboard
-        function processAndRenderData(data) {
+        function populateFilterDropdowns(data) {
+            const yearSelect = document.getElementById('filterYear');
+            const monthSelect = document.getElementById('filterMonth');
+            const dateSelect = document.getElementById('filterDate');
+            const shiftSelect = document.getElementById('filterShift');
+
+            const years = [...new Set(data.map(d => d.year))].sort();
+            const months = [...new Set(data.map(d => d.month))];
+            const dates = [...new Set(data.map(d => d.date))].sort((a,b) => a - b);
+            const shifts = [...new Set(data.map(d => d.shift))];
+
+            yearSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Years)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+            monthSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
+            dateSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Dates)</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
+            shiftSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function applyFilters() {
+            const selYear = document.getElementById('filterYear').value;
+            const selMonth = document.getElementById('filterMonth').value;
+            const selDate = document.getElementById('filterDate').value;
+            const selShift = document.getElementById('filterShift').value;
+
+            const filteredData = rawExcelData.filter(r => {
+                const matchYear = (selYear === 'ALL') || (String(r.year) === selYear);
+                const matchMonth = (selMonth === 'ALL') || (String(r.month) === selMonth);
+                const matchDate = (selDate === 'ALL') || (String(r.date) === selDate);
+                const matchShift = (selShift === 'ALL') || (String(r.shift) === selShift);
+                return matchYear && matchMonth && matchDate && matchShift;
+            });
+
+            renderDashboard(filteredData);
+        }
+
+        function resetFilters() {
+            document.getElementById('filterYear').value = 'ALL';
+            document.getElementById('filterMonth').value = 'ALL';
+            document.getElementById('filterDate').value = 'ALL';
+            document.getElementById('filterShift').value = 'ALL';
+            applyFilters();
+        }
+
+        function renderDashboard(data) {
             let totalCost = 0;
             let totalQty = 0;
             let dailyMap = {};
             let deptMap = {};
             let probMap = {};
-            let cleanRows = [];
 
-            data.forEach(row => {
-                let qty = parseFloat(row['Quantity']) || 0;
-                let price = parseFloat(row['Price']) || 0;
-                let amt = qty * price;
-                let date = row['Date'] || 'Unknown';
-                let dept = row['Department'] || 'N/A';
-                let prob = row['Problem'] || 'N/A';
+            data.forEach(r => {
+                totalCost += r.amt;
+                totalQty += r.qty;
 
-                if (qty > 0 || price > 0) {
-                    totalCost += amt;
-                    totalQty += qty;
-
-                    // Group Daily
-                    dailyMap[date] = (dailyMap[date] || 0) + amt;
-                    // Group Dept
-                    deptMap[dept] = (deptMap[dept] || 0) + amt;
-                    // Group Problem
-                    probMap[prob] = (probMap[prob] || 0) + qty;
-
-                    cleanRows.push({ date, dept, prob, qty, amt });
-                }
+                dailyMap[r.date] = (dailyMap[r.date] || 0) + r.amt;
+                deptMap[r.dept] = (deptMap[r.dept] || 0) + r.amt;
+                probMap[r.prob] = (probMap[r.prob] || 0) + r.qty;
             });
 
-            // 1. Update Metrics
             document.getElementById('kpiTotalCost').innerText = '฿' + totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('kpiTotalQty').innerText = totalQty.toLocaleString() + ' pcs';
-            document.getElementById('kpiTotalCases').innerText = cleanRows.length + ' cases';
+            document.getElementById('kpiTotalCases').innerText = data.length + ' cases';
 
-            let topProblem = Object.keys(probMap).reduce((a, b) => probMap[a] > probMap[b] ? a : b, '-');
+            let topProblem = Object.keys(probMap).length > 0 ? Object.keys(probMap).reduce((a, b) => probMap[a] > probMap[b] ? a : b) : '-';
             document.getElementById('kpiTopProblem').innerText = topProblem;
 
-            // 2. Render Charts
             renderDailyChart(dailyMap);
-            renderDeptChart(deptMap, totalCost);
+            renderDeptChart(deptMap);
             renderProblemChart(probMap);
-
-            // 3. Render Data Table
-            renderTable(cleanRows);
+            renderTable(data);
         }
 
         function renderDailyChart(dailyMap) {
             const ctx = document.getElementById('dailyChart').getContext('2d');
             if (dailyChartInstance) dailyChartInstance.destroy();
 
-            const labels = Object.keys(dailyMap);
-            const dataValues = Object.values(dailyMap);
-
             dailyChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    labels: Object.keys(dailyMap),
                     datasets: [{
                         label: 'Expenses (฿)',
-                        data: dataValues,
+                        data: Object.values(dailyMap),
                         backgroundColor: '#6366F1',
                         borderRadius: 6
                     }]
@@ -226,7 +304,7 @@
             });
         }
 
-        function renderDeptChart(deptMap, totalCost) {
+        function renderDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
 
@@ -255,7 +333,6 @@
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
 
-            // Sort Top 5
             const sorted = Object.entries(probMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
             problemChartInstance = new Chart(ctx, {
@@ -285,10 +362,16 @@
         function renderTable(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
-            rows.slice(0, 10).forEach(r => {
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
+                return;
+            }
+            rows.slice(0, 15).forEach(r => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
                         <td class="py-2 px-3 font-medium text-white">${r.date}</td>
+                        <td class="py-2 px-3">${r.month}</td>
+                        <td class="py-2 px-3">${r.shift}</td>
                         <td class="py-2 px-3">${r.dept}</td>
                         <td class="py-2 px-3 truncate max-w-[150px]">${r.prob}</td>
                         <td class="py-2 px-3 text-right text-indigo-400 font-semibold">${r.qty}</td>
