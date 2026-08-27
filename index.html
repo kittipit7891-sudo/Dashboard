@@ -15,19 +15,19 @@
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #0B0E14; color: #E2E8F0; }
         .card { background-color: #151A23; border: 1px solid #262D3D; border-radius: 1rem; }
-        .glass-header { background: rgba(21, 26, 35, 0.8); backdrop-filter: blur(12px); }
-        select, input[type="date"] { 
+        .glass-header { background: rgba(21, 26, 35, 0.85); backdrop-filter: blur(12px); }
+        select, input { 
             background-color: #1E2532; 
             color: #E2E8F0; 
             border: 1px solid #334155; 
             color-scheme: dark;
         }
-        select:focus, input[type="date"]:focus { outline: none; border-color: #6366F1; }
+        select:focus, input:focus { outline: none; border-color: #6366F1; }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
 
-    <!-- Top Navigation & Upload -->
+    <!-- Top Navigation Header -->
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 glass-header p-4 rounded-2xl border border-[#262D3D] sticky top-2 z-50">
         <div>
             <h1 class="text-2xl font-bold text-white flex items-center gap-2">
@@ -36,22 +36,30 @@
             <p class="text-xs text-slate-400">Production Defect & Scrap Expense Analytics</p>
         </div>
         
-        <div class="flex items-center gap-3">
-            <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-500/20 flex items-center gap-2">
-                📂 เลือกไฟล์ Scrap.xlsx
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Add Data Button -->
+            <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center gap-1.5">
+                ➕ เพิ่มข้อมูลใหม่
+            </button>
+            <!-- Upload Excel Button -->
+            <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-lg shadow-indigo-500/20 flex items-center gap-1.5">
+                📂 นำเข้า Scrap.xlsx
                 <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileUpload(event)">
             </label>
+            <!-- Export Excel Button -->
+            <button onclick="exportToExcel()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5">
+                📥 ส่งออก Excel
+            </button>
         </div>
     </header>
 
     <!-- Filter Bar -->
     <section class="card p-4 mb-6">
         <div class="flex flex-wrap items-center gap-4">
-            <span class="text-sm font-semibold text-slate-300 flex items-center gap-1.5">
-                🔍 ตัวกรองช่วงเวลา:
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                🔍 ตัวกรอง:
             </span>
             
-            <!-- Date Range Pickers -->
             <div class="flex items-center gap-2">
                 <label class="text-xs text-slate-400">ตั้งแต่วันที่:</label>
                 <input type="date" id="startDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
@@ -62,15 +70,13 @@
                 <input type="date" id="endDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
             </div>
 
-            <!-- Shift Filter -->
             <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">กะการทำงาน:</label>
+                <label class="text-xs text-slate-400">กะ:</label>
                 <select id="filterShift" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
                     <option value="ALL">ทั้งหมด (All Shifts)</option>
                 </select>
             </div>
 
-            <!-- Month Filter -->
             <div class="flex items-center gap-2">
                 <label class="text-xs text-slate-400">เดือน:</label>
                 <select id="filterMonth" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
@@ -78,7 +84,6 @@
                 </select>
             </div>
 
-            <!-- Reset Button -->
             <button onclick="resetFilters()" class="ml-auto text-xs text-indigo-400 hover:text-indigo-300 font-medium underline">
                 ล้างตัวกรองทั้งหมด
             </button>
@@ -112,7 +117,7 @@
             </div>
         </div>
 
-        <!-- Middle Row: Charts -->
+        <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="card p-6 lg:col-span-2">
                 <h3 class="text-base font-semibold text-slate-200 mb-4">📊 Daily Expense Analytics</h3>
@@ -139,23 +144,27 @@
             </div>
 
             <div class="card p-6 flex flex-col justify-between">
-                <h3 class="text-base font-semibold text-slate-200 mb-4">📋 Recent Data Records</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+                        📋 Recent Data Records
+                    </h3>
+                </div>
                 <div class="overflow-x-auto h-64">
                     <table class="w-full text-left text-xs text-slate-300">
                         <thead class="text-slate-400 bg-[#1E2532] uppercase sticky top-0">
                             <tr>
-                                <th class="py-2 px-3">Date</th>
-                                <th class="py-2 px-3">Month</th>
-                                <th class="py-2 px-3">Shift</th>
-                                <th class="py-2 px-3">Dept</th>
-                                <th class="py-2 px-3">Problem</th>
-                                <th class="py-2 px-3 text-right">Qty</th>
-                                <th class="py-2 px-3 text-right">Amt (฿)</th>
+                                <th class="py-2.5 px-3">DATE</th>
+                                <th class="py-2.5 px-3">MONTH</th>
+                                <th class="py-2.5 px-3">SHIFT</th>
+                                <th class="py-2.5 px-3">DEPT</th>
+                                <th class="py-2.5 px-3">PROBLEM</th>
+                                <th class="py-2.5 px-3 text-right">QTY</th>
+                                <th class="py-2.5 px-3 text-right">AMT (฿)</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
                             <tr>
-                                <td colspan="7" class="text-center py-8 text-slate-500">กรุณาเลือกไฟล์ Scrap.xlsx เพื่อเริ่มแสดงข้อมูล</td>
+                                <td colspan="7" class="text-center py-8 text-slate-500">ยังไม่มีข้อมูล กรุณานำเข้าไฟล์ Excel หรือกดเพิ่มข้อมูลใหม่</td>
                             </tr>
                         </tbody>
                     </table>
@@ -165,17 +174,83 @@
 
     </main>
 
+    <!-- Modal Form: Add New Record -->
+    <div id="addModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center hidden z-50 p-4">
+        <div class="card max-w-md w-full p-6 space-y-4 shadow-2xl border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    ➕ เพิ่มข้อมูล Scrap ใหม่
+                </h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+            </div>
+
+            <form id="addRecordForm" onsubmit="saveNewRecord(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Date (วันที่)</label>
+                        <input type="date" id="inputDate" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Month (เดือน)</label>
+                        <select id="inputMonth" class="w-full px-3 py-2 rounded-lg text-xs">
+                            <option value="Jan">Jan</option><option value="Feb">Feb</option>
+                            <option value="Mar">Mar</option><option value="Apr">Apr</option>
+                            <option value="May">May</option><option value="Jun">Jun</option>
+                            <option value="Jul">Jul</option><option value="Aug" selected>Aug</option>
+                            <option value="Sep">Sep</option><option value="Oct">Oct</option>
+                            <option value="Nov">Nov</option><option value="Dec">Dec</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Shift (กะการทำงาน)</label>
+                        <select id="inputShift" class="w-full px-3 py-2 rounded-lg text-xs">
+                            <option value="Day Shift">Day Shift</option>
+                            <option value="Night Shift">Night Shift</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Dept (แผนก)</label>
+                        <input type="text" id="inputDept" placeholder="เช่น PD-B, TF+IQC" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Problem (ปัญหา/สาเหตุ)</label>
+                    <input type="text" id="inputProb" placeholder="เช่น ถังในหยาบ, Socket ขาด" required class="w-full px-3 py-2 rounded-lg text-xs">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Quantity (จำนวน QTY)</label>
+                        <input type="number" id="inputQty" min="1" value="1" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Price/Unit (ราคาต่อหน่วย ฿)</label>
+                        <input type="number" step="0.01" id="inputPrice" placeholder="0.00" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    </div>
+                </div>
+
+                <div class="pt-3 flex justify-end gap-2">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let rawExcelData = [];
         let dailyChartInstance = null;
         let deptChartInstance = null;
         let problemChartInstance = null;
 
-        // แปลงวันที่ Excel เป็น ISO String (YYYY-MM-DD) และ Display Date (DD/MM/YYYY)
         function parseExcelDate(val) {
-            if (val === undefined || val === null || val === '') return { iso: '', display: 'N/A' };
-            let num = Number(val);
+            if (!val) return { iso: '', display: 'N/A' };
             let jsDate;
+            let num = Number(val);
             if (!isNaN(num) && num > 1000) {
                 jsDate = new Date(Math.round((num - 25569) * 86400 * 1000));
             } else {
@@ -202,9 +277,7 @@
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 let jsonData = XLSX.utils.sheet_to_json(worksheet);
                 
                 rawExcelData = jsonData.map(row => {
@@ -235,13 +308,9 @@
             const shifts = [...new Set(data.map(d => d.shift))];
             const months = [...new Set(data.map(d => d.month))];
             
-            const shiftSelect = document.getElementById('filterShift');
-            const monthSelect = document.getElementById('filterMonth');
+            document.getElementById('filterShift').innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById('filterMonth').innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
 
-            shiftSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
-            monthSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
-
-            // หาค่า วันที่เริ่มต้น และ วันที่สุดท้าย ในไฟล์ Excel เพื่อตั้งเป็นค่า Default ใน Date Picker
             const isoDates = data.map(d => d.isoDate).filter(d => d !== '').sort();
             if (isoDates.length > 0) {
                 document.getElementById('startDate').value = isoDates[0];
@@ -260,7 +329,6 @@
                 const matchEnd = !endDate || (r.isoDate <= endDate);
                 const matchShift = (selShift === 'ALL') || (r.shift === selShift);
                 const matchMonth = (selMonth === 'ALL') || (r.month === selMonth);
-
                 return matchStart && matchEnd && matchShift && matchMonth;
             });
 
@@ -270,7 +338,6 @@
         function resetFilters() {
             document.getElementById('filterShift').value = 'ALL';
             document.getElementById('filterMonth').value = 'ALL';
-            
             const isoDates = rawExcelData.map(d => d.isoDate).filter(d => d !== '').sort();
             if (isoDates.length > 0) {
                 document.getElementById('startDate').value = isoDates[0];
@@ -280,6 +347,67 @@
                 document.getElementById('endDate').value = '';
             }
             applyFilters();
+        }
+
+        function openAddModal() {
+            document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+        }
+
+        function saveNewRecord(event) {
+            event.preventDefault();
+            const dateVal = document.getElementById('inputDate').value;
+            const monthVal = document.getElementById('inputMonth').value;
+            const shiftVal = document.getElementById('inputShift').value;
+            const deptVal = document.getElementById('inputDept').value;
+            const probVal = document.getElementById('inputProb').value;
+            const qtyVal = parseFloat(document.getElementById('inputQty').value) || 0;
+            const priceVal = parseFloat(document.getElementById('inputPrice').value) || 0;
+
+            const parsedDate = parseExcelDate(dateVal);
+
+            const newRecord = {
+                isoDate: parsedDate.iso,
+                displayDate: parsedDate.display,
+                month: monthVal,
+                shift: shiftVal,
+                dept: deptVal,
+                prob: probVal,
+                qty: qtyVal,
+                price: priceVal,
+                amt: qtyVal * priceVal
+            };
+
+            rawExcelData.unshift(newRecord);
+            setupFilters(rawExcelData);
+            applyFilters();
+            closeAddModal();
+            document.getElementById('addRecordForm').reset();
+        }
+
+        function exportToExcel() {
+            if (rawExcelData.length === 0) {
+                alert('ไม่มีข้อมูลสำหรับส่งออก');
+                return;
+            }
+            const exportData = rawExcelData.map(r => ({
+                'Date': r.displayDate,
+                'Month': r.month,
+                'Shift': r.shift,
+                'Department': r.dept,
+                'Problem': r.prob,
+                'Quantity': r.qty,
+                'Price': r.price,
+                'Amount': r.amt
+            }));
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "ScrapData");
+            XLSX.writeFile(wb, "Scrap_Updated_Data.xlsx");
         }
 
         function renderDashboard(data) {
@@ -292,7 +420,6 @@
             data.forEach(r => {
                 totalCost += r.amt;
                 totalQty += r.qty;
-
                 let labelDate = r.displayDate !== 'N/A' ? r.displayDate : 'Unknown';
                 dailyMap[labelDate] = (dailyMap[labelDate] || 0) + r.amt;
                 deptMap[r.dept] = (deptMap[r.dept] || 0) + r.amt;
@@ -398,19 +525,19 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             if (rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามช่วงเวลาที่เลือก</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
                 return;
             }
             rows.slice(0, 15).forEach(r => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
-                        <td class="py-2 px-3 font-medium text-white">${r.displayDate}</td>
-                        <td class="py-2 px-3">${r.month}</td>
-                        <td class="py-2 px-3">${r.shift}</td>
-                        <td class="py-2 px-3">${r.dept}</td>
-                        <td class="py-2 px-3 truncate max-w-[150px]">${r.prob}</td>
-                        <td class="py-2 px-3 text-right text-indigo-400 font-semibold">${r.qty}</td>
-                        <td class="py-2 px-3 text-right text-emerald-400 font-semibold">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="py-2.5 px-3 font-semibold text-white">${r.displayDate}</td>
+                        <td class="py-2.5 px-3 text-slate-300">${r.month}</td>
+                        <td class="py-2.5 px-3 text-slate-300">${r.shift}</td>
+                        <td class="py-2.5 px-3 text-indigo-300 font-medium">${r.dept}</td>
+                        <td class="py-2.5 px-3 text-slate-200 truncate max-w-[150px]">${r.prob}</td>
+                        <td class="py-2.5 px-3 text-right text-indigo-400 font-bold">${r.qty}</td>
+                        <td class="py-2.5 px-3 text-right text-emerald-400 font-bold">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
