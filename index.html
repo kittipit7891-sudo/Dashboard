@@ -120,7 +120,7 @@
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="card p-6 lg:col-span-2">
-                <h3 class="text-base font-semibold text-slate-200 mb-4">📊 Daily Expense Analytics</h3>
+                <h3 class="text-base font-semibold text-slate-200 mb-4">📊 Daily Expense Pareto Analytics</h3>
                 <div class="h-64 relative">
                     <canvas id="dailyChart"></canvas>
                 </div>
@@ -134,10 +134,10 @@
             </div>
         </div>
 
-        <!-- Bottom Row: Top Problems & Raw Data Table -->
+        <!-- Bottom Row: Top Problems Pareto & Raw Data Table -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
-                <h3 class="text-base font-semibold text-slate-200 mb-4">⚠️ Top 5 Defect Problems</h3>
+                <h3 class="text-base font-semibold text-slate-200 mb-4">⚠️ Defect Problems Pareto Analysis</h3>
                 <div class="h-64 relative">
                     <canvas id="problemChart"></canvas>
                 </div>
@@ -433,34 +433,83 @@
             let topProblem = Object.keys(probMap).length > 0 ? Object.keys(probMap).reduce((a, b) => probMap[a] > probMap[b] ? a : b) : '-';
             document.getElementById('kpiTopProblem').innerText = topProblem;
 
-            renderDailyChart(dailyMap);
+            renderDailyParetoChart(dailyMap);
             renderDeptChart(deptMap);
-            renderProblemChart(probMap);
+            renderProblemParetoChart(probMap);
             renderTable(data);
         }
 
-        function renderDailyChart(dailyMap) {
+        // Pareto Chart for Daily Expenses
+        function renderDailyParetoChart(dailyMap) {
             const ctx = document.getElementById('dailyChart').getContext('2d');
             if (dailyChartInstance) dailyChartInstance.destroy();
 
+            // เรียงลำดับจากค่ามากไปน้อย (Pareto Sorting)
+            const sorted = Object.entries(dailyMap).sort((a, b) => b[1] - a[1]);
+            const labels = sorted.map(item => item[0]);
+            const values = sorted.map(item => item[1]);
+            const grandTotal = values.reduce((sum, v) => sum + v, 0);
+
+            // คำนวณ % สะสม (Cumulative %)
+            let accum = 0;
+            const cumulativePct = values.map(v => {
+                accum += v;
+                return grandTotal > 0 ? parseFloat(((accum / grandTotal) * 100).toFixed(1)) : 0;
+            });
+
             dailyChartInstance = new Chart(ctx, {
-                type: 'bar',
                 data: {
-                    labels: Object.keys(dailyMap),
-                    datasets: [{
-                        label: 'Expenses (฿)',
-                        data: Object.values(dailyMap),
-                        backgroundColor: '#6366F1',
-                        borderRadius: 6
-                    }]
+                    labels: labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Cumulative %',
+                            data: cumulativePct,
+                            borderColor: '#F59E0B',
+                            backgroundColor: '#F59E0B',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            yAxisID: 'y1',
+                            order: 1
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Expense (฿)',
+                            data: values,
+                            backgroundColor: '#6366F1',
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                            order: 2
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { labels: { color: '#94A3B8', font: { size: 11 } } }
+                    },
                     scales: {
                         x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
-                        y: { grid: { color: '#1E293B' }, ticks: { color: '#94A3B8' } }
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: '#1E293B' },
+                            ticks: { color: '#94A3B8' },
+                            title: { display: true, text: 'Expenses (฿)', color: '#94A3B8' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                color: '#F59E0B',
+                                callback: value => value + '%'
+                            },
+                            title: { display: true, text: 'Cumulative %', color: '#F59E0B' }
+                        }
                     }
                 }
             });
@@ -491,31 +540,76 @@
             });
         }
 
-        function renderProblemChart(probMap) {
+        // Pareto Chart for Defect Problems
+        function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
 
-            const sorted = Object.entries(probMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            // เรียงลำดับสาเหตุจากมากไปน้อย
+            const sorted = Object.entries(probMap).sort((a, b) => b[1] - a[1]);
+            const labels = sorted.map(item => item[0]);
+            const values = sorted.map(item => item[1]);
+            const grandTotal = values.reduce((sum, v) => sum + v, 0);
+
+            let accum = 0;
+            const cumulativePct = values.map(v => {
+                accum += v;
+                return grandTotal > 0 ? parseFloat(((accum / grandTotal) * 100).toFixed(1)) : 0;
+            });
 
             problemChartInstance = new Chart(ctx, {
-                type: 'bar',
                 data: {
-                    labels: sorted.map(item => item[0]),
-                    datasets: [{
-                        label: 'Defect Quantity',
-                        data: sorted.map(item => item[1]),
-                        backgroundColor: '#38BDF8',
-                        borderRadius: 6
-                    }]
+                    labels: labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Cumulative %',
+                            data: cumulativePct,
+                            borderColor: '#EC4899',
+                            backgroundColor: '#EC4899',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            yAxisID: 'y1',
+                            order: 1
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Defect Qty',
+                            data: values,
+                            backgroundColor: '#38BDF8',
+                            borderRadius: 6,
+                            yAxisID: 'y',
+                            order: 2
+                        }
+                    ]
                 },
                 options: {
-                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { labels: { color: '#94A3B8', font: { size: 11 } } }
+                    },
                     scales: {
-                        x: { grid: { color: '#1E293B' }, ticks: { color: '#94A3B8' } },
-                        y: { grid: { display: false }, ticks: { color: '#94A3B8' } }
+                        x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: '#1E293B' },
+                            ticks: { color: '#94A3B8' },
+                            title: { display: true, text: 'Defect Qty', color: '#94A3B8' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                color: '#EC4899',
+                                callback: value => value + '%'
+                            },
+                            title: { display: true, text: 'Cumulative %', color: '#EC4899' }
+                        }
                     }
                 }
             });
