@@ -16,8 +16,13 @@
         body { font-family: 'Kanit', sans-serif; background-color: #0B0E14; color: #E2E8F0; }
         .card { background-color: #151A23; border: 1px solid #262D3D; border-radius: 1rem; }
         .glass-header { background: rgba(21, 26, 35, 0.8); backdrop-filter: blur(12px); }
-        select { background-color: #1E2532; color: #E2E8F0; border: 1px solid #334155; }
-        select:focus { outline: none; border-color: #6366F1; }
+        select, input[type="date"] { 
+            background-color: #1E2532; 
+            color: #E2E8F0; 
+            border: 1px solid #334155; 
+            color-scheme: dark;
+        }
+        select:focus, input[type="date"]:focus { outline: none; border-color: #6366F1; }
     </style>
 </head>
 <body class="p-4 md:p-8 min-h-screen">
@@ -43,14 +48,25 @@
     <section class="card p-4 mb-6">
         <div class="flex flex-wrap items-center gap-4">
             <span class="text-sm font-semibold text-slate-300 flex items-center gap-1.5">
-                🔍 ตัวกรองข้อมูล:
+                🔍 ตัวกรองช่วงเวลา:
             </span>
             
-            <!-- Year Filter -->
+            <!-- Date Range Pickers -->
             <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">ปี:</label>
-                <select id="filterYear" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
-                    <option value="ALL">ทั้งหมด (All Years)</option>
+                <label class="text-xs text-slate-400">ตั้งแต่วันที่:</label>
+                <input type="date" id="startDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">ถึงวันที่:</label>
+                <input type="date" id="endDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            </div>
+
+            <!-- Shift Filter -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">กะการทำงาน:</label>
+                <select id="filterShift" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <option value="ALL">ทั้งหมด (All Shifts)</option>
                 </select>
             </div>
 
@@ -59,22 +75,6 @@
                 <label class="text-xs text-slate-400">เดือน:</label>
                 <select id="filterMonth" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
                     <option value="ALL">ทั้งหมด (All Months)</option>
-                </select>
-            </div>
-
-            <!-- Date Filter -->
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">วันที่:</label>
-                <select id="filterDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
-                    <option value="ALL">ทั้งหมด (All Dates)</option>
-                </select>
-            </div>
-
-            <!-- Shift Filter -->
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">กะการทำงาน:</label>
-                <select id="filterShift" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
-                    <option value="ALL">ทั้งหมด (All Shifts)</option>
                 </select>
             </div>
 
@@ -171,23 +171,27 @@
         let deptChartInstance = null;
         let problemChartInstance = null;
 
-        // แปลง Excel Serial Date (เช่น 46237) เป็น วัน/เดือน/ปี
-        function formatExcelDate(val) {
-            if (!val && val !== 0) return 'Unknown';
-            if (val instanceof Date) {
-                const d = String(val.getDate()).padStart(2, '0');
-                const m = String(val.getMonth() + 1).padStart(2, '0');
-                const y = val.getFullYear();
-                return `${d}/${m}/${y}`;
+        // แปลงวันที่ Excel เป็น ISO String (YYYY-MM-DD) และ Display Date (DD/MM/YYYY)
+        function parseExcelDate(val) {
+            if (val === undefined || val === null || val === '') return { iso: '', display: 'N/A' };
+            let num = Number(val);
+            let jsDate;
+            if (!isNaN(num) && num > 1000) {
+                jsDate = new Date(Math.round((num - 25569) * 86400 * 1000));
+            } else {
+                jsDate = new Date(val);
             }
-            if (typeof val === 'number' && val > 10000) {
-                const dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
-                const d = String(dateObj.getDate()).padStart(2, '0');
-                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const y = dateObj.getFullYear();
-                return `${d}/${m}/${y}`;
-            }
-            return String(val);
+
+            if (isNaN(jsDate.getTime())) return { iso: '', display: String(val) };
+
+            const yyyy = jsDate.getFullYear();
+            const mm = String(jsDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(jsDate.getDate()).padStart(2, '0');
+
+            return {
+                iso: `${yyyy}-${mm}-${dd}`,
+                display: `${dd}/${mm}/${yyyy}`
+            };
         }
 
         function handleFileUpload(event) {
@@ -197,30 +201,21 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 
-                let jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
+                let jsonData = XLSX.utils.sheet_to_json(worksheet);
                 
                 rawExcelData = jsonData.map(row => {
                     let qty = parseFloat(row['Quantity']) || 0;
                     let price = parseFloat(row['Price']) || 0;
-                    let formattedDate = formatExcelDate(row['Date']);
-                    
-                    let rowYear = row['Year'];
-                    if (!rowYear && row['Date']) {
-                        if (row['Date'] instanceof Date) {
-                            rowYear = row['Date'].getFullYear();
-                        } else if (typeof row['Date'] === 'number' && row['Date'] > 10000) {
-                            rowYear = new Date(Math.round((row['Date'] - 25569) * 86400 * 1000)).getFullYear();
-                        }
-                    }
+                    let parsedDate = parseExcelDate(row['Date']);
 
                     return {
-                        date: formattedDate,
+                        isoDate: parsedDate.iso,
+                        displayDate: parsedDate.display,
                         month: row['Month'] || 'Unknown',
-                        year: rowYear || '2026',
                         shift: row['Shift'] || 'N/A',
                         dept: row['Department'] || 'N/A',
                         prob: row['Problem'] || 'N/A',
@@ -230,51 +225,60 @@
                     };
                 }).filter(r => r.qty > 0 || r.price > 0);
 
-                populateFilterDropdowns(rawExcelData);
+                setupFilters(rawExcelData);
                 applyFilters();
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function populateFilterDropdowns(data) {
-            const yearSelect = document.getElementById('filterYear');
-            const monthSelect = document.getElementById('filterMonth');
-            const dateSelect = document.getElementById('filterDate');
-            const shiftSelect = document.getElementById('filterShift');
-
-            const years = [...new Set(data.map(d => d.year))].sort();
-            const months = [...new Set(data.map(d => d.month))];
-            const dates = [...new Set(data.map(d => d.date))].sort();
+        function setupFilters(data) {
             const shifts = [...new Set(data.map(d => d.shift))];
+            const months = [...new Set(data.map(d => d.month))];
+            
+            const shiftSelect = document.getElementById('filterShift');
+            const monthSelect = document.getElementById('filterMonth');
 
-            yearSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Years)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
-            monthSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
-            dateSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Dates)</option>' + dates.map(d => `<option value="${d}">${d}</option>`).join('');
             shiftSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
+            monthSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
+
+            // หาค่า วันที่เริ่มต้น และ วันที่สุดท้าย ในไฟล์ Excel เพื่อตั้งเป็นค่า Default ใน Date Picker
+            const isoDates = data.map(d => d.isoDate).filter(d => d !== '').sort();
+            if (isoDates.length > 0) {
+                document.getElementById('startDate').value = isoDates[0];
+                document.getElementById('endDate').value = isoDates[isoDates.length - 1];
+            }
         }
 
         function applyFilters() {
-            const selYear = document.getElementById('filterYear').value;
-            const selMonth = document.getElementById('filterMonth').value;
-            const selDate = document.getElementById('filterDate').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
             const selShift = document.getElementById('filterShift').value;
+            const selMonth = document.getElementById('filterMonth').value;
 
             const filteredData = rawExcelData.filter(r => {
-                const matchYear = (selYear === 'ALL') || (String(r.year) === selYear);
-                const matchMonth = (selMonth === 'ALL') || (String(r.month) === selMonth);
-                const matchDate = (selDate === 'ALL') || (String(r.date) === selDate);
-                const matchShift = (selShift === 'ALL') || (String(r.shift) === selShift);
-                return matchYear && matchMonth && matchDate && matchShift;
+                const matchStart = !startDate || (r.isoDate >= startDate);
+                const matchEnd = !endDate || (r.isoDate <= endDate);
+                const matchShift = (selShift === 'ALL') || (r.shift === selShift);
+                const matchMonth = (selMonth === 'ALL') || (r.month === selMonth);
+
+                return matchStart && matchEnd && matchShift && matchMonth;
             });
 
             renderDashboard(filteredData);
         }
 
         function resetFilters() {
-            document.getElementById('filterYear').value = 'ALL';
-            document.getElementById('filterMonth').value = 'ALL';
-            document.getElementById('filterDate').value = 'ALL';
             document.getElementById('filterShift').value = 'ALL';
+            document.getElementById('filterMonth').value = 'ALL';
+            
+            const isoDates = rawExcelData.map(d => d.isoDate).filter(d => d !== '').sort();
+            if (isoDates.length > 0) {
+                document.getElementById('startDate').value = isoDates[0];
+                document.getElementById('endDate').value = isoDates[isoDates.length - 1];
+            } else {
+                document.getElementById('startDate').value = '';
+                document.getElementById('endDate').value = '';
+            }
             applyFilters();
         }
 
@@ -289,7 +293,8 @@
                 totalCost += r.amt;
                 totalQty += r.qty;
 
-                dailyMap[r.date] = (dailyMap[r.date] || 0) + r.amt;
+                let labelDate = r.displayDate !== 'N/A' ? r.displayDate : 'Unknown';
+                dailyMap[labelDate] = (dailyMap[labelDate] || 0) + r.amt;
                 deptMap[r.dept] = (deptMap[r.dept] || 0) + r.amt;
                 probMap[r.prob] = (probMap[r.prob] || 0) + r.qty;
             });
@@ -393,13 +398,13 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             if (rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามช่วงเวลาที่เลือก</td></tr>';
                 return;
             }
             rows.slice(0, 15).forEach(r => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
-                        <td class="py-2 px-3 font-medium text-white">${r.date}</td>
+                        <td class="py-2 px-3 font-medium text-white">${r.displayDate}</td>
                         <td class="py-2 px-3">${r.month}</td>
                         <td class="py-2 px-3">${r.shift}</td>
                         <td class="py-2 px-3">${r.dept}</td>
