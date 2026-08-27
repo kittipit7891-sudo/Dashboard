@@ -171,6 +171,25 @@
         let deptChartInstance = null;
         let problemChartInstance = null;
 
+        // แปลง Excel Serial Date (เช่น 46237) เป็น วัน/เดือน/ปี
+        function formatExcelDate(val) {
+            if (!val && val !== 0) return 'Unknown';
+            if (val instanceof Date) {
+                const d = String(val.getDate()).padStart(2, '0');
+                const m = String(val.getMonth() + 1).padStart(2, '0');
+                const y = val.getFullYear();
+                return `${d}/${m}/${y}`;
+            }
+            if (typeof val === 'number' && val > 10000) {
+                const dateObj = new Date(Math.round((val - 25569) * 86400 * 1000));
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const y = dateObj.getFullYear();
+                return `${d}/${m}/${y}`;
+            }
+            return String(val);
+        }
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -178,19 +197,30 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 
-                let jsonData = XLSX.utils.sheet_to_json(worksheet);
+                let jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: true });
                 
                 rawExcelData = jsonData.map(row => {
                     let qty = parseFloat(row['Quantity']) || 0;
                     let price = parseFloat(row['Price']) || 0;
+                    let formattedDate = formatExcelDate(row['Date']);
+                    
+                    let rowYear = row['Year'];
+                    if (!rowYear && row['Date']) {
+                        if (row['Date'] instanceof Date) {
+                            rowYear = row['Date'].getFullYear();
+                        } else if (typeof row['Date'] === 'number' && row['Date'] > 10000) {
+                            rowYear = new Date(Math.round((row['Date'] - 25569) * 86400 * 1000)).getFullYear();
+                        }
+                    }
+
                     return {
-                        date: row['Date'] !== undefined ? row['Date'] : 'Unknown',
+                        date: formattedDate,
                         month: row['Month'] || 'Unknown',
-                        year: row['Year'] || (row['Date'] && String(row['Date']).length > 4 ? new Date(row['Date']).getFullYear() : '2024'),
+                        year: rowYear || '2026',
                         shift: row['Shift'] || 'N/A',
                         dept: row['Department'] || 'N/A',
                         prob: row['Problem'] || 'N/A',
@@ -214,7 +244,7 @@
 
             const years = [...new Set(data.map(d => d.year))].sort();
             const months = [...new Set(data.map(d => d.month))];
-            const dates = [...new Set(data.map(d => d.date))].sort((a,b) => a - b);
+            const dates = [...new Set(data.map(d => d.date))].sort();
             const shifts = [...new Set(data.map(d => d.shift))];
 
             yearSelect.innerHTML = '<option value="ALL">ทั้งหมด (All Years)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
