@@ -71,6 +71,13 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">Model:</label>
+                <select id="filterModel" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <option value="ALL">ทั้งหมด (All Models)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
                 <label class="text-xs text-slate-400">กะ:</label>
                 <select id="filterShift" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
                     <option value="ALL">ทั้งหมด (All Shifts)</option>
@@ -155,6 +162,7 @@
                             <tr>
                                 <th class="py-2.5 px-3">DATE</th>
                                 <th class="py-2.5 px-3">MONTH</th>
+                                <th class="py-2.5 px-3">MODEL</th>
                                 <th class="py-2.5 px-3">SHIFT</th>
                                 <th class="py-2.5 px-3">DEPT</th>
                                 <th class="py-2.5 px-3">PROBLEM</th>
@@ -164,7 +172,7 @@
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
                             <tr>
-                                <td colspan="7" class="text-center py-8 text-slate-500">ยังไม่มีข้อมูล กรุณานำเข้าไฟล์ Excel หรือกดเพิ่มข้อมูลใหม่</td>
+                                <td colspan="8" class="text-center py-8 text-slate-500">ยังไม่มีข้อมูล กรุณานำเข้าไฟล์ Excel หรือกดเพิ่มข้อมูลใหม่</td>
                             </tr>
                         </tbody>
                     </table>
@@ -205,16 +213,21 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
+                        <label class="block text-xs text-slate-400 mb-1">Model (รุ่นสินค้า)</label>
+                        <input type="text" id="inputModel" placeholder="เช่น M-01, Model-A" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    </div>
+                    <div>
                         <label class="block text-xs text-slate-400 mb-1">Shift (กะการทำงาน)</label>
                         <select id="inputShift" class="w-full px-3 py-2 rounded-lg text-xs">
                             <option value="Day Shift">Day Shift</option>
                             <option value="Night Shift">Night Shift</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Dept (แผนก)</label>
-                        <input type="text" id="inputDept" placeholder="เช่น PD-B, TF+IQC" required class="w-full px-3 py-2 rounded-lg text-xs">
-                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Dept (แผนก)</label>
+                    <input type="text" id="inputDept" placeholder="เช่น PD-B, TF+IQC" required class="w-full px-3 py-2 rounded-lg text-xs">
                 </div>
 
                 <div>
@@ -289,6 +302,7 @@
                         isoDate: parsedDate.iso,
                         displayDate: parsedDate.display,
                         month: row['Month'] || 'Unknown',
+                        model: row['Model'] || row['MODEL'] || 'N/A',
                         shift: row['Shift'] || 'N/A',
                         dept: row['Department'] || 'N/A',
                         prob: row['Problem'] || 'N/A',
@@ -305,9 +319,11 @@
         }
 
         function setupFilters(data) {
+            const models = [...new Set(data.map(d => d.model))].filter(m => m !== 'N/A' && m !== '');
             const shifts = [...new Set(data.map(d => d.shift))];
             const months = [...new Set(data.map(d => d.month))];
             
+            document.getElementById('filterModel').innerHTML = '<option value="ALL">ทั้งหมด (All Models)</option>' + models.map(m => `<option value="${m}">${m}</option>`).join('');
             document.getElementById('filterShift').innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
             document.getElementById('filterMonth').innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
 
@@ -321,21 +337,24 @@
         function applyFilters() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
+            const selModel = document.getElementById('filterModel').value;
             const selShift = document.getElementById('filterShift').value;
             const selMonth = document.getElementById('filterMonth').value;
 
             const filteredData = rawExcelData.filter(r => {
                 const matchStart = !startDate || (r.isoDate >= startDate);
                 const matchEnd = !endDate || (r.isoDate <= endDate);
+                const matchModel = (selModel === 'ALL') || (r.model === selModel);
                 const matchShift = (selShift === 'ALL') || (r.shift === selShift);
                 const matchMonth = (selMonth === 'ALL') || (r.month === selMonth);
-                return matchStart && matchEnd && matchShift && matchMonth;
+                return matchStart && matchEnd && matchModel && matchShift && matchMonth;
             });
 
             renderDashboard(filteredData);
         }
 
         function resetFilters() {
+            document.getElementById('filterModel').value = 'ALL';
             document.getElementById('filterShift').value = 'ALL';
             document.getElementById('filterMonth').value = 'ALL';
             const isoDates = rawExcelData.map(d => d.isoDate).filter(d => d !== '').sort();
@@ -362,6 +381,7 @@
             event.preventDefault();
             const dateVal = document.getElementById('inputDate').value;
             const monthVal = document.getElementById('inputMonth').value;
+            const modelVal = document.getElementById('inputModel').value;
             const shiftVal = document.getElementById('inputShift').value;
             const deptVal = document.getElementById('inputDept').value;
             const probVal = document.getElementById('inputProb').value;
@@ -374,6 +394,7 @@
                 isoDate: parsedDate.iso,
                 displayDate: parsedDate.display,
                 month: monthVal,
+                model: modelVal,
                 shift: shiftVal,
                 dept: deptVal,
                 prob: probVal,
@@ -397,6 +418,7 @@
             const exportData = rawExcelData.map(r => ({
                 'Date': r.displayDate,
                 'Month': r.month,
+                'Model': r.model,
                 'Shift': r.shift,
                 'Department': r.dept,
                 'Problem': r.prob,
@@ -444,13 +466,11 @@
             const ctx = document.getElementById('dailyChart').getContext('2d');
             if (dailyChartInstance) dailyChartInstance.destroy();
 
-            // เรียงลำดับจากค่ามากไปน้อย (Pareto Sorting)
             const sorted = Object.entries(dailyMap).sort((a, b) => b[1] - a[1]);
             const labels = sorted.map(item => item[0]);
             const values = sorted.map(item => item[1]);
             const grandTotal = values.reduce((sum, v) => sum + v, 0);
 
-            // คำนวณ % สะสม (Cumulative %)
             let accum = 0;
             const cumulativePct = values.map(v => {
                 accum += v;
@@ -545,7 +565,6 @@
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
 
-            // เรียงลำดับสาเหตุจากมากไปน้อย
             const sorted = Object.entries(probMap).sort((a, b) => b[1] - a[1]);
             const labels = sorted.map(item => item[0]);
             const values = sorted.map(item => item[1]);
@@ -619,7 +638,7 @@
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             if (rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
                 return;
             }
             rows.slice(0, 15).forEach(r => {
@@ -627,6 +646,7 @@
                     <tr class="hover:bg-[#1E2532] transition">
                         <td class="py-2.5 px-3 font-semibold text-white">${r.displayDate}</td>
                         <td class="py-2.5 px-3 text-slate-300">${r.month}</td>
+                        <td class="py-2.5 px-3 text-amber-400 font-medium">${r.model}</td>
                         <td class="py-2.5 px-3 text-slate-300">${r.shift}</td>
                         <td class="py-2.5 px-3 text-indigo-300 font-medium">${r.dept}</td>
                         <td class="py-2.5 px-3 text-slate-200 truncate max-w-[150px]">${r.prob}</td>
