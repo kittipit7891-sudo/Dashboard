@@ -162,7 +162,10 @@
         <!-- Bottom Row -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
-                <h3 class="text-base font-semibold text-slate-200 mb-4">⚠️ Defect Problems Pareto Analysis</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-semibold text-slate-200">⚠️ Top 10 Defect Problems Pareto Analysis</h3>
+                    <span class="text-xs text-purple-400 font-medium">Top 10 Only</span>
+                </div>
                 <div class="h-64 relative">
                     <canvas id="problemChart"></canvas>
                 </div>
@@ -274,7 +277,6 @@
         let deptChartInstance = null;
         let problemChartInstance = null;
 
-        // Custom Chart.js Plugin for Glowing Vertical Highlight Cursor & Ring Point
         const glowingHighlightPlugin = {
             id: 'glowingHighlight',
             afterDraw: (chart) => {
@@ -288,7 +290,6 @@
 
                     ctx.save();
                     
-                    // Vertical Cursor Line
                     ctx.beginPath();
                     ctx.moveTo(x, y);
                     ctx.lineTo(x, bottomY);
@@ -298,7 +299,6 @@
                     ctx.shadowBlur = 12;
                     ctx.stroke();
 
-                    // Outer Glowing Ring
                     ctx.beginPath();
                     ctx.arc(x, y, 7, 0, 2 * Math.PI);
                     ctx.fillStyle = '#10B981';
@@ -306,7 +306,6 @@
                     ctx.shadowBlur = 16;
                     ctx.fill();
 
-                    // Inner Dark Core
                     ctx.beginPath();
                     ctx.arc(x, y, 3, 0, 2 * Math.PI);
                     ctx.fillStyle = '#0B0E14';
@@ -337,7 +336,6 @@
             return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
         }
 
-        // Fixed File Upload Function with flexible field matching
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -351,7 +349,6 @@
                     let jsonData = XLSX.utils.sheet_to_json(worksheet);
                     
                     rawExcelData = jsonData.map(row => {
-                        // Helper function to match column names flexibly
                         const getVal = (possibleKeys) => {
                             for (let key of possibleKeys) {
                                 const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
@@ -385,7 +382,7 @@
                     alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: ' + err.message);
                 }
             };
-            reader.readAsArrayBuffer(file); // Fixed standard method
+            reader.readAsArrayBuffer(file);
         }
 
         function setupFilters(data) {
@@ -705,15 +702,23 @@
             });
         }
 
+        // Pareto Chart (Filtered to Top 10 Defect Problems Only)
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
 
-            const sorted = Object.entries(probMap).sort((a, b) => b[1] - a[1]);
-            const labels = sorted.map(item => item[0]);
-            const values = sorted.map(item => item[1]);
-            const grandTotal = values.reduce((sum, v) => sum + v, 0);
+            // 1. คำนวณยอดรวม Defect ทั้งหมด
+            const grandTotal = Object.values(probMap).reduce((sum, v) => sum + v, 0);
 
+            // 2. เรียงลำดับจากมากไปน้อย และคัดเอาเฉพาะ Top 10
+            const sortedTop10 = Object.entries(probMap)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const labels = sortedTop10.map(item => item[0]);
+            const values = sortedTop10.map(item => item[1]);
+
+            // 3. คำนวณ % สะสม
             let accum = 0;
             const cumulativePct = values.map(v => {
                 accum += v;
@@ -731,7 +736,8 @@
                             borderColor: '#EC4899',
                             backgroundColor: '#EC4899',
                             borderWidth: 2,
-                            pointRadius: 3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#EC4899',
                             yAxisID: 'y1',
                             order: 1
                         },
@@ -750,16 +756,24 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: '#94A3B8', font: { size: 11 } } }
+                        legend: { labels: { color: '#94A3B8', font: { size: 11, family: 'Kanit' } } }
                     },
                     scales: {
-                        x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { 
+                                color: '#94A3B8', 
+                                font: { size: 10, family: 'Kanit' },
+                                maxRotation: 45,
+                                minRotation: 20
+                            } 
+                        },
                         y: {
                             type: 'linear',
                             position: 'left',
                             grid: { color: '#1E293B' },
-                            ticks: { color: '#94A3B8' },
-                            title: { display: true, text: 'Defect Qty', color: '#94A3B8' }
+                            ticks: { color: '#94A3B8', font: { family: 'Kanit' } },
+                            title: { display: true, text: 'Defect Qty', color: '#94A3B8', font: { family: 'Kanit' } }
                         },
                         y1: {
                             type: 'linear',
@@ -767,8 +781,8 @@
                             min: 0,
                             max: 100,
                             grid: { drawOnChartArea: false },
-                            ticks: { color: '#EC4899', callback: value => value + '%' },
-                            title: { display: true, text: 'Cumulative %', color: '#EC4899' }
+                            ticks: { color: '#EC4899', callback: value => value + '%', font: { family: 'Kanit' } },
+                            title: { display: true, text: 'Cumulative %', color: '#EC4899', font: { family: 'Kanit' } }
                         }
                     }
                 }
