@@ -122,7 +122,7 @@
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- Glowing Neon Line Chart (Revenue / Usage Trend Style) -->
+            <!-- Glowing Neon Line Chart -->
             <div class="card p-6 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <div>
@@ -288,7 +288,7 @@
 
                     ctx.save();
                     
-                    // 1. Draw Glowing Vertical Cursor Line
+                    // Vertical Cursor Line
                     ctx.beginPath();
                     ctx.moveTo(x, y);
                     ctx.lineTo(x, bottomY);
@@ -298,7 +298,7 @@
                     ctx.shadowBlur = 12;
                     ctx.stroke();
 
-                    // 2. Draw Outer Glowing Ring on Point
+                    // Outer Glowing Ring
                     ctx.beginPath();
                     ctx.arc(x, y, 7, 0, 2 * Math.PI);
                     ctx.fillStyle = '#10B981';
@@ -306,7 +306,7 @@
                     ctx.shadowBlur = 16;
                     ctx.fill();
 
-                    // 3. Inner Dark Core
+                    // Inner Dark Core
                     ctx.beginPath();
                     ctx.arc(x, y, 3, 0, 2 * Math.PI);
                     ctx.fillStyle = '#0B0E14';
@@ -337,40 +337,55 @@
             return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
         }
 
+        // Fixed File Upload Function with flexible field matching
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function (e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                let jsonData = XLSX.utils.sheet_to_json(worksheet);
-                
-                rawExcelData = jsonData.map(row => {
-                    let qty = parseFloat(row['Quantity']) || 0;
-                    let price = parseFloat(row['Price']) || 0;
-                    let parsedDate = parseExcelDate(row['Date']);
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    let jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    rawExcelData = jsonData.map(row => {
+                        // Helper function to match column names flexibly
+                        const getVal = (possibleKeys) => {
+                            for (let key of possibleKeys) {
+                                const foundKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
+                                if (foundKey && row[foundKey] !== undefined) return row[foundKey];
+                            }
+                            return null;
+                        };
 
-                    return {
-                        isoDate: parsedDate.iso,
-                        displayDate: parsedDate.display,
-                        month: row['Month'] || 'Unknown',
-                        model: row['Model'] || row['MODEL'] || 'N/A',
-                        shift: row['Shift'] || 'N/A',
-                        dept: row['Department'] || 'N/A',
-                        prob: row['Problem'] || 'N/A',
-                        qty: qty,
-                        price: price,
-                        amt: qty * price
-                    };
-                }).filter(r => r.qty > 0 || r.price > 0);
+                        let qty = parseFloat(getVal(['Quantity', 'QTY', 'Qty', 'จำนวน'])) || 0;
+                        let price = parseFloat(getVal(['Price', 'Price/Unit', 'PRICE', 'ราคา'])) || 0;
+                        let dateVal = getVal(['Date', 'DATE', 'วันที่']);
+                        let parsedDate = parseExcelDate(dateVal);
 
-                setupFilters(rawExcelData);
-                applyFilters();
+                        return {
+                            isoDate: parsedDate.iso,
+                            displayDate: parsedDate.display,
+                            month: getVal(['Month', 'MONTH', 'เดือน']) || 'Unknown',
+                            model: getVal(['Model', 'MODEL', 'รุ่น']) || 'N/A',
+                            shift: getVal(['Shift', 'SHIFT', 'กะ']) || 'N/A',
+                            dept: getVal(['Department', 'Dept', 'DEPT', 'แผนก']) || 'N/A',
+                            prob: getVal(['Problem', 'Prob', 'PROBLEM', 'ปัญหา']) || 'N/A',
+                            qty: qty,
+                            price: price,
+                            amt: qty * price
+                        };
+                    }).filter(r => r.qty > 0 || r.price > 0 || r.amt > 0);
+
+                    setupFilters(rawExcelData);
+                    applyFilters();
+                } catch (err) {
+                    alert('เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: ' + err.message);
+                }
             };
-            reader.readAsBuffer(file);
+            reader.readAsArrayBuffer(file); // Fixed standard method
         }
 
         function setupFilters(data) {
@@ -513,7 +528,6 @@
             renderTable(data);
         }
 
-        // Glowing Trend Curve Chart with Mouse Cursor Highlight Line
         function renderGlowingTrendChart(filteredData) {
             const canvas = document.getElementById('dailyChart');
             const ctx = canvas.getContext('2d');
@@ -523,7 +537,7 @@
             filteredData.forEach(r => {
                 if (!r.isoDate) return;
                 if (!grouped[r.isoDate]) {
-                    grouped[r.isoDate] = { displayDate: r.displayDate, amt: 0, prevAmt: 0 };
+                    grouped[r.isoDate] = { displayDate: r.displayDate, amt: 0 };
                 }
                 grouped[r.isoDate].amt += r.amt;
             });
@@ -531,11 +545,8 @@
             const sortedDates = Object.keys(grouped).sort();
             const labels = sortedDates.map(d => grouped[d].displayDate);
             const currentValues = sortedDates.map(d => grouped[d].amt);
-            
-            // Generate simulated "Previous" comparison baseline curve
             const previousValues = currentValues.map(v => Math.max(0, v * 0.55 + (Math.sin(v) * 200)));
 
-            // Neon Area Gradient Fill
             const gradientFill = ctx.createLinearGradient(0, 0, 0, 240);
             gradientFill.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
             gradientFill.addColorStop(0.7, 'rgba(16, 185, 129, 0.04)');
@@ -554,7 +565,7 @@
                             tension: 0.45,
                             fill: true,
                             backgroundColor: gradientFill,
-                            pointRadius: 0, // Hidden until hover
+                            pointRadius: 0,
                             pointHoverRadius: 0,
                             order: 1
                         },
@@ -619,7 +630,6 @@
             });
         }
 
-        // Semi-Circle Gauge Arc Chart
         function renderGaugeDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
@@ -695,7 +705,6 @@
             });
         }
 
-        // Pareto Chart
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
