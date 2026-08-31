@@ -126,7 +126,7 @@
 
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Smooth Trend Chart (Inspired by reference image) -->
+            <!-- Smooth Trend Chart -->
             <div class="card p-6 lg:col-span-2">
                 <div class="flex justify-between items-center mb-1">
                     <h3 class="text-base font-semibold text-slate-100">Usage Trends</h3>
@@ -137,10 +137,24 @@
                 </div>
             </div>
 
-            <div class="card p-6">
-                <h3 class="text-base font-semibold text-slate-200 mb-4">🍩 Expenses by Department</h3>
-                <div class="h-64 relative">
+            <!-- Semi-Circle Gauge Chart (Expenses by Department) -->
+            <div class="card p-6 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-100 mb-0.5">Department Share</h3>
+                    <p class="text-xs text-slate-400 mb-2">Expenses by Department Index</p>
+                </div>
+                
+                <!-- Semi-Circle Gauge Arc Container -->
+                <div class="relative h-44 flex items-center justify-center">
                     <canvas id="deptChart"></canvas>
+                    <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+                        <span id="deptCenterValue" class="text-3xl font-extrabold text-white block leading-tight">0%</span>
+                        <span id="deptCenterLabel" class="text-[11px] text-slate-400 block font-medium">Top Share</span>
+                    </div>
+                </div>
+
+                <!-- Custom 2-Column Grid Legend -->
+                <div id="deptLegend" class="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 pt-3 border-t border-[#262D3D] text-xs">
                 </div>
             </div>
         </div>
@@ -457,17 +471,16 @@
             document.getElementById('kpiTopProblem').innerText = topProblem;
 
             renderSmoothTrendChart(data);
-            renderDeptChart(deptMap);
+            renderGaugeDeptChart(deptMap);
             renderProblemParetoChart(probMap);
             renderTable(data);
         }
 
-        // Smooth Spline Line Chart (Usage Trends Style from Image)
+        // Smooth Spline Line Chart
         function renderSmoothTrendChart(filteredData) {
             const ctx = document.getElementById('dailyChart').getContext('2d');
             if (dailyChartInstance) dailyChartInstance.destroy();
 
-            // จัดกลุ่มข้อมูลตามวันที่ และเรียงลำดับจากอดีตไปปัจจุบัน
             const grouped = {};
             filteredData.forEach(r => {
                 if (!r.isoDate) return;
@@ -491,10 +504,10 @@
                         {
                             label: 'Expenses (฿)',
                             data: expenseValues,
-                            borderColor: '#8B5CF6', // Purple Accent
+                            borderColor: '#8B5CF6',
                             backgroundColor: '#8B5CF6',
                             borderWidth: 3,
-                            tension: 0.4, // Curved smooth lines
+                            tension: 0.4,
                             pointRadius: 4,
                             pointHoverRadius: 7,
                             pointBackgroundColor: '#8B5CF6',
@@ -505,10 +518,10 @@
                         {
                             label: 'Defect Qty (pcs)',
                             data: qtyValues,
-                            borderColor: '#10B981', // Emerald/Green Accent
+                            borderColor: '#10B981',
                             backgroundColor: '#10B981',
                             borderWidth: 3,
-                            tension: 0.4, // Curved smooth lines
+                            tension: 0.4,
                             pointRadius: 4,
                             pointHoverRadius: 7,
                             pointBackgroundColor: '#10B981',
@@ -521,56 +534,27 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: {
                             position: 'top',
                             align: 'end',
-                            labels: {
-                                color: '#E2E8F0',
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                boxWidth: 8,
-                                font: { size: 11, family: 'Kanit' }
-                            }
+                            labels: { color: '#E2E8F0', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, font: { size: 11, family: 'Kanit' } }
                         },
-                        tooltip: {
-                            backgroundColor: '#1E2532',
-                            titleColor: '#FFFFFF',
-                            bodyColor: '#E2E8F0',
-                            borderColor: '#334155',
-                            borderWidth: 1,
-                            padding: 10
-                        }
+                        tooltip: { backgroundColor: '#1E2532', titleColor: '#FFFFFF', bodyColor: '#E2E8F0', borderColor: '#334155', borderWidth: 1, padding: 10 }
                     },
                     scales: {
-                        x: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#94A3B8', font: { size: 10 } }
-                        },
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94A3B8', font: { size: 10 } } },
                         y: {
-                            type: 'linear',
-                            position: 'left',
+                            type: 'linear', position: 'left',
                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: {
-                                color: '#8B5CF6',
-                                font: { size: 10 },
-                                callback: val => val >= 1000 ? (val/1000).toFixed(0) + 'K' : val
-                            },
+                            ticks: { color: '#8B5CF6', font: { size: 10 }, callback: val => val >= 1000 ? (val/1000).toFixed(0) + 'K' : val },
                             title: { display: true, text: 'Expenses (฿)', color: '#8B5CF6', font: { size: 10 } }
                         },
                         y1: {
-                            type: 'linear',
-                            position: 'right',
+                            type: 'linear', position: 'right',
                             grid: { drawOnChartArea: false },
-                            ticks: {
-                                color: '#10B981',
-                                font: { size: 10 },
-                                callback: val => val >= 1000 ? (val/1000).toFixed(0) + 'K' : val
-                            },
+                            ticks: { color: '#10B981', font: { size: 10 }, callback: val => val >= 1000 ? (val/1000).toFixed(0) + 'K' : val },
                             title: { display: true, text: 'Defect Qty (pcs)', color: '#10B981', font: { size: 10 } }
                         }
                     }
@@ -578,26 +562,80 @@
             });
         }
 
-        function renderDeptChart(deptMap) {
+        // Semi-Circle Gauge Arc Chart (Inspired by AI Confidence Index gauge image)
+        function renderGaugeDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
+
+            const labels = Object.keys(deptMap);
+            const values = Object.values(deptMap);
+            const total = values.reduce((a, b) => a + b, 0);
+
+            // Palette matching reference gauge: Yellow, Cyan, Blue, Magenta, Emerald, Orange
+            const colors = ['#EAB308', '#06B6D4', '#3B82F6', '#D946EF', '#10B981', '#F97316'];
+
+            // Update center label & metric
+            if (total > 0 && values.length > 0) {
+                const maxVal = Math.max(...values);
+                const topPct = ((maxVal / total) * 100).toFixed(1);
+                document.getElementById('deptCenterValue').innerText = `${topPct}%`;
+                document.getElementById('deptCenterLabel').innerText = 'Top Dept Share';
+            } else {
+                document.getElementById('deptCenterValue').innerText = '0%';
+                document.getElementById('deptCenterLabel').innerText = 'No Data';
+            }
+
+            // Build 2-column Legend grid below chart
+            const legendContainer = document.getElementById('deptLegend');
+            legendContainer.innerHTML = '';
+            labels.forEach((label, idx) => {
+                const val = values[idx];
+                const pct = total > 0 ? ((val / total) * 100).toFixed(0) : 0;
+                const color = colors[idx % colors.length];
+
+                legendContainer.innerHTML += `
+                    <div class="flex items-center justify-between py-0.5">
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0" style="background-color: ${color}"></span>
+                            <span class="text-slate-300 truncate">${label}</span>
+                        </div>
+                        <span class="font-bold text-white ml-2">${pct}%</span>
+                    </div>
+                `;
+            });
 
             deptChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(deptMap),
+                    labels: labels,
                     datasets: [{
-                        data: Object.values(deptMap),
-                        backgroundColor: ['#8B5CF6', '#A855F7', '#EC4899', '#3B82F6', '#10B981', '#F59E0B'],
-                        borderWidth: 0
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 3,
+                        borderColor: '#151A23',
+                        hoverOffset: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '70%',
+                    rotation: -90,        // Start angle at 9 o'clock
+                    circumference: 180,   // Half circle arc
+                    cutout: '76%',        // Inner gauge radius cutout
                     plugins: {
-                        legend: { position: 'right', labels: { color: '#94A3B8', font: { size: 11 } } }
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1E2532',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    const val = context.raw || 0;
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return ` ฿${val.toLocaleString()} (${pct}%)`;
+                                }
+                            }
+                        }
                     }
                 }
             });
@@ -666,10 +704,7 @@
                             min: 0,
                             max: 100,
                             grid: { drawOnChartArea: false },
-                            ticks: {
-                                color: '#EC4899',
-                                callback: value => value + '%'
-                            },
+                            ticks: { color: '#EC4899', callback: value => value + '%' },
                             title: { display: true, text: 'Cumulative %', color: '#EC4899' }
                         }
                     }
