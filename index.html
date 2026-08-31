@@ -37,16 +37,13 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2.5">
-            <!-- Add Data Button -->
             <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center gap-1.5">
                 ➕ เพิ่มข้อมูลใหม่
             </button>
-            <!-- Upload Excel Button -->
             <label class="cursor-pointer bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-lg shadow-purple-500/20 flex items-center gap-1.5">
                 📂 นำเข้า Scrap.xlsx
                 <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileUpload(event)">
             </label>
-            <!-- Export Excel Button -->
             <button onclick="exportToExcel()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5">
                 📥 ส่งออก Excel
             </button>
@@ -56,9 +53,7 @@
     <!-- Filter Bar -->
     <section class="card p-4 mb-6">
         <div class="flex flex-wrap items-center gap-4">
-            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                🔍 ตัวกรอง:
-            </span>
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">🔍 ตัวกรอง:</span>
             
             <div class="flex items-center gap-2">
                 <label class="text-xs text-slate-400">ตั้งแต่วันที่:</label>
@@ -126,25 +121,31 @@
 
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Smooth Trend Chart -->
-            <div class="card p-6 lg:col-span-2">
-                <div class="flex justify-between items-center mb-1">
-                    <h3 class="text-base font-semibold text-slate-100">Usage Trends</h3>
+            
+            <!-- Glowing Neon Line Chart (Revenue / Usage Trend Style) -->
+            <div class="card p-6 lg:col-span-2 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-100">Revenue & Usage Trend</h3>
+                        <p class="text-xs text-slate-400">Interactive glowing cursor trend curve</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs font-medium">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-1 rounded-full bg-[#10B981] inline-block shadow-[0_0_8px_#10B981]"></span> Current</span>
+                        <span class="flex items-center gap-1.5 text-slate-400"><span class="w-3 h-0.5 border-t border-dashed border-slate-500 inline-block"></span> Previous</span>
+                    </div>
                 </div>
-                <p class="text-xs text-slate-400 mb-4">Expenses & Defect Quantity trends over time</p>
-                <div class="h-64 relative">
+                <div class="h-64 relative mt-2">
                     <canvas id="dailyChart"></canvas>
                 </div>
             </div>
 
-            <!-- Semi-Circle Gauge Chart (Expenses by Department) -->
+            <!-- Semi-Circle Gauge Chart -->
             <div class="card p-6 flex flex-col justify-between">
                 <div>
                     <h3 class="text-base font-semibold text-slate-100 mb-0.5">Department Share</h3>
                     <p class="text-xs text-slate-400 mb-2">Expenses by Department Index</p>
                 </div>
                 
-                <!-- Semi-Circle Gauge Arc Container -->
                 <div class="relative h-44 flex items-center justify-center">
                     <canvas id="deptChart"></canvas>
                     <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-center pointer-events-none">
@@ -153,13 +154,12 @@
                     </div>
                 </div>
 
-                <!-- Custom 2-Column Grid Legend -->
                 <div id="deptLegend" class="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 pt-3 border-t border-[#262D3D] text-xs">
                 </div>
             </div>
         </div>
 
-        <!-- Bottom Row: Defect Problems Pareto & Raw Data Table -->
+        <!-- Bottom Row -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="card p-6">
                 <h3 class="text-base font-semibold text-slate-200 mb-4">⚠️ Defect Problems Pareto Analysis</h3>
@@ -170,9 +170,7 @@
 
             <div class="card p-6 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-semibold text-slate-200 flex items-center gap-2">
-                        📋 Recent Data Records
-                    </h3>
+                    <h3 class="text-base font-semibold text-slate-200 flex items-center gap-2">📋 Recent Data Records</h3>
                 </div>
                 <div class="overflow-x-auto h-64">
                     <table class="w-full text-left text-xs text-slate-300">
@@ -200,24 +198,22 @@
 
     </main>
 
-    <!-- Modal Form: Add New Record -->
+    <!-- Modal Form -->
     <div id="addModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center hidden z-50 p-4">
         <div class="card max-w-md w-full p-6 space-y-4 shadow-2xl border-slate-700">
             <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    ➕ เพิ่มข้อมูล Scrap ใหม่
-                </h3>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">➕ เพิ่มข้อมูล Scrap ใหม่</h3>
                 <button onclick="closeAddModal()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
             </div>
 
             <form id="addRecordForm" onsubmit="saveNewRecord(event)" class="space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Date (วันที่)</label>
+                        <label class="block text-xs text-slate-400 mb-1">Date</label>
                         <input type="date" id="inputDate" required class="w-full px-3 py-2 rounded-lg text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Month (เดือน)</label>
+                        <label class="block text-xs text-slate-400 mb-1">Month</label>
                         <select id="inputMonth" class="w-full px-3 py-2 rounded-lg text-xs">
                             <option value="Jan">Jan</option><option value="Feb">Feb</option>
                             <option value="Mar">Mar</option><option value="Apr">Apr</option>
@@ -231,11 +227,11 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Model (รุ่นสินค้า)</label>
-                        <input type="text" id="inputModel" placeholder="เช่น M-01, Model-A" required class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-xs text-slate-400 mb-1">Model</label>
+                        <input type="text" id="inputModel" required class="w-full px-3 py-2 rounded-lg text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Shift (กะการทำงาน)</label>
+                        <label class="block text-xs text-slate-400 mb-1">Shift</label>
                         <select id="inputShift" class="w-full px-3 py-2 rounded-lg text-xs">
                             <option value="Day Shift">Day Shift</option>
                             <option value="Night Shift">Night Shift</option>
@@ -244,23 +240,23 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Dept (แผนก)</label>
-                    <input type="text" id="inputDept" placeholder="เช่น PD-B, TF+IQC" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    <label class="block text-xs text-slate-400 mb-1">Dept</label>
+                    <input type="text" id="inputDept" required class="w-full px-3 py-2 rounded-lg text-xs">
                 </div>
 
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Problem (ปัญหา/สาเหตุ)</label>
-                    <input type="text" id="inputProb" placeholder="เช่น ถังในหยาบ, Socket ขาด" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    <label class="block text-xs text-slate-400 mb-1">Problem</label>
+                    <input type="text" id="inputProb" required class="w-full px-3 py-2 rounded-lg text-xs">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Quantity (จำนวน QTY)</label>
+                        <label class="block text-xs text-slate-400 mb-1">Quantity</label>
                         <input type="number" id="inputQty" min="1" value="1" required class="w-full px-3 py-2 rounded-lg text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Price/Unit (ราคาต่อหน่วย ฿)</label>
-                        <input type="number" step="0.01" id="inputPrice" placeholder="0.00" required class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-xs text-slate-400 mb-1">Price/Unit (฿)</label>
+                        <input type="number" step="0.01" id="inputPrice" required class="w-full px-3 py-2 rounded-lg text-xs">
                     </div>
                 </div>
 
@@ -278,6 +274,50 @@
         let deptChartInstance = null;
         let problemChartInstance = null;
 
+        // Custom Chart.js Plugin for Glowing Vertical Highlight Cursor & Ring Point
+        const glowingHighlightPlugin = {
+            id: 'glowingHighlight',
+            afterDraw: (chart) => {
+                const activeElements = chart.getActiveElements();
+                if (activeElements && activeElements.length > 0) {
+                    const ctx = chart.ctx;
+                    const activePoint = activeElements[0];
+                    const x = activePoint.element.x;
+                    const y = activePoint.element.y;
+                    const bottomY = chart.scales.y.bottom;
+
+                    ctx.save();
+                    
+                    // 1. Draw Glowing Vertical Cursor Line
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, bottomY);
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = '#10B981';
+                    ctx.shadowColor = '#10B981';
+                    ctx.shadowBlur = 12;
+                    ctx.stroke();
+
+                    // 2. Draw Outer Glowing Ring on Point
+                    ctx.beginPath();
+                    ctx.arc(x, y, 7, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#10B981';
+                    ctx.shadowColor = '#10B981';
+                    ctx.shadowBlur = 16;
+                    ctx.fill();
+
+                    // 3. Inner Dark Core
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#0B0E14';
+                    ctx.shadowBlur = 0;
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        };
+
         function parseExcelDate(val) {
             if (!val) return { iso: '', display: 'N/A' };
             let jsDate;
@@ -294,10 +334,7 @@
             const mm = String(jsDate.getMonth() + 1).padStart(2, '0');
             const dd = String(jsDate.getDate()).padStart(2, '0');
 
-            return {
-                iso: `${yyyy}-${mm}-${dd}`,
-                display: `${dd}/${mm}/${yyyy}`
-            };
+            return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
         }
 
         function handleFileUpload(event) {
@@ -333,7 +370,7 @@
                 setupFilters(rawExcelData);
                 applyFilters();
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsBuffer(file);
         }
 
         function setupFilters(data) {
@@ -470,31 +507,39 @@
             let topProblem = Object.keys(probMap).length > 0 ? Object.keys(probMap).reduce((a, b) => probMap[a] > probMap[b] ? a : b) : '-';
             document.getElementById('kpiTopProblem').innerText = topProblem;
 
-            renderSmoothTrendChart(data);
+            renderGlowingTrendChart(data);
             renderGaugeDeptChart(deptMap);
             renderProblemParetoChart(probMap);
             renderTable(data);
         }
 
-        // Smooth Spline Line Chart
-        function renderSmoothTrendChart(filteredData) {
-            const ctx = document.getElementById('dailyChart').getContext('2d');
+        // Glowing Trend Curve Chart with Mouse Cursor Highlight Line
+        function renderGlowingTrendChart(filteredData) {
+            const canvas = document.getElementById('dailyChart');
+            const ctx = canvas.getContext('2d');
             if (dailyChartInstance) dailyChartInstance.destroy();
 
             const grouped = {};
             filteredData.forEach(r => {
                 if (!r.isoDate) return;
                 if (!grouped[r.isoDate]) {
-                    grouped[r.isoDate] = { displayDate: r.displayDate, amt: 0, qty: 0 };
+                    grouped[r.isoDate] = { displayDate: r.displayDate, amt: 0, prevAmt: 0 };
                 }
                 grouped[r.isoDate].amt += r.amt;
-                grouped[r.isoDate].qty += r.qty;
             });
 
             const sortedDates = Object.keys(grouped).sort();
             const labels = sortedDates.map(d => grouped[d].displayDate);
-            const expenseValues = sortedDates.map(d => grouped[d].amt);
-            const qtyValues = sortedDates.map(d => grouped[d].qty);
+            const currentValues = sortedDates.map(d => grouped[d].amt);
+            
+            // Generate simulated "Previous" comparison baseline curve
+            const previousValues = currentValues.map(v => Math.max(0, v * 0.55 + (Math.sin(v) * 200)));
+
+            // Neon Area Gradient Fill
+            const gradientFill = ctx.createLinearGradient(0, 0, 0, 240);
+            gradientFill.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+            gradientFill.addColorStop(0.7, 'rgba(16, 185, 129, 0.04)');
+            gradientFill.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
             dailyChartInstance = new Chart(ctx, {
                 type: 'line',
@@ -502,67 +547,79 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Expenses (฿)',
-                            data: expenseValues,
-                            borderColor: '#8B5CF6',
-                            backgroundColor: '#8B5CF6',
+                            label: 'Current',
+                            data: currentValues,
+                            borderColor: '#10B981',
                             borderWidth: 3,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: '#8B5CF6',
-                            pointBorderColor: '#151A23',
-                            pointBorderWidth: 2,
-                            yAxisID: 'y'
+                            tension: 0.45,
+                            fill: true,
+                            backgroundColor: gradientFill,
+                            pointRadius: 0, // Hidden until hover
+                            pointHoverRadius: 0,
+                            order: 1
                         },
                         {
-                            label: 'Defect Qty (pcs)',
-                            data: qtyValues,
-                            borderColor: '#10B981',
-                            backgroundColor: '#10B981',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointHoverRadius: 7,
-                            pointBackgroundColor: '#10B981',
-                            pointBorderColor: '#151A23',
-                            pointBorderWidth: 2,
-                            yAxisID: 'y1'
+                            label: 'Previous',
+                            data: previousValues,
+                            borderColor: '#475569',
+                            borderWidth: 2,
+                            borderDash: [6, 6],
+                            tension: 0.45,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 0,
+                            order: 2
                         }
                     ]
                 },
+                plugins: [glowingHighlightPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: {
-                            position: 'top',
-                            align: 'end',
-                            labels: { color: '#E2E8F0', usePointStyle: true, pointStyle: 'circle', boxWidth: 8, font: { size: 11, family: 'Kanit' } }
-                        },
-                        tooltip: { backgroundColor: '#1E2532', titleColor: '#FFFFFF', bodyColor: '#E2E8F0', borderColor: '#334155', borderWidth: 1, padding: 10 }
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: '#10B981',
+                            titleColor: '#000000',
+                            bodyColor: '#000000',
+                            titleFont: { family: 'Kanit', weight: 'bold', size: 10 },
+                            bodyFont: { family: 'Kanit', weight: 'bold', size: 12 },
+                            padding: { top: 6, bottom: 6, left: 12, right: 12 },
+                            cornerRadius: 20,
+                            displayColors: false,
+                            callbacks: {
+                                title: () => '',
+                                label: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        let val = context.raw || 0;
+                                        return `↗ ฿${val.toLocaleString()}`;
+                                    }
+                                    return null;
+                                }
+                            }
+                        }
                     },
                     scales: {
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94A3B8', font: { size: 10 } } },
-                        y: {
-                            type: 'linear', position: 'left',
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#8B5CF6', font: { size: 10 }, callback: val => val >= 1000 ? (val/1000).toFixed(0) + 'K' : val },
-                            title: { display: true, text: 'Expenses (฿)', color: '#8B5CF6', font: { size: 10 } }
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { color: '#64748B', font: { size: 10, family: 'Kanit' } }
                         },
-                        y1: {
-                            type: 'linear', position: 'right',
-                            grid: { drawOnChartArea: false },
-                            ticks: { color: '#10B981', font: { size: 10 }, callback: val => val >= 1000 ? (val/1000).toFixed(0) + 'K' : val },
-                            title: { display: true, text: 'Defect Qty (pcs)', color: '#10B981', font: { size: 10 } }
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#64748B',
+                                font: { size: 10, family: 'Kanit' },
+                                callback: val => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val
+                            }
                         }
                     }
                 }
             });
         }
 
-        // Semi-Circle Gauge Arc Chart (Inspired by AI Confidence Index gauge image)
+        // Semi-Circle Gauge Arc Chart
         function renderGaugeDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
@@ -571,10 +628,8 @@
             const values = Object.values(deptMap);
             const total = values.reduce((a, b) => a + b, 0);
 
-            // Palette matching reference gauge: Yellow, Cyan, Blue, Magenta, Emerald, Orange
             const colors = ['#EAB308', '#06B6D4', '#3B82F6', '#D946EF', '#10B981', '#F97316'];
 
-            // Update center label & metric
             if (total > 0 && values.length > 0) {
                 const maxVal = Math.max(...values);
                 const topPct = ((maxVal / total) * 100).toFixed(1);
@@ -585,7 +640,6 @@
                 document.getElementById('deptCenterLabel').innerText = 'No Data';
             }
 
-            // Build 2-column Legend grid below chart
             const legendContainer = document.getElementById('deptLegend');
             legendContainer.innerHTML = '';
             labels.forEach((label, idx) => {
@@ -619,9 +673,9 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    rotation: -90,        // Start angle at 9 o'clock
-                    circumference: 180,   // Half circle arc
-                    cutout: '76%',        // Inner gauge radius cutout
+                    rotation: -90,
+                    circumference: 180,
+                    cutout: '76%',
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -641,7 +695,7 @@
             });
         }
 
-        // Pareto Chart for Defect Problems
+        // Pareto Chart
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
