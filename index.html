@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #0B0E14; color: #E2E8F0; }
-        .card { background-color: #151A23; border: 1px solid #262D3D; border-radius: 1rem; }
+        .card { background-color: #151A23; border: 1px solid #262D3D; border-radius: 0.75rem; }
         .glass-header { background: rgba(21, 26, 35, 0.85); backdrop-filter: blur(12px); }
         select, input { 
             background-color: #1E2532; 
@@ -25,63 +25,63 @@
         select:focus, input:focus { outline: none; border-color: #8B5CF6; }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen">
+<body class="p-3 md:p-5 min-h-screen">
 
     <!-- Top Navigation Header -->
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 glass-header p-4 rounded-2xl border border-[#262D3D] sticky top-2 z-50">
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 glass-header p-3 rounded-xl border border-[#262D3D] sticky top-2 z-50">
         <div>
-            <h1 class="text-2xl font-bold text-white flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> Dashboard
+            <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> Dashboard
             </h1>
-            <p class="text-xs text-slate-400">Production Defect & Scrap Expense Analytics</p>
+            <p class="text-[11px] text-slate-400">Production Defect & Scrap Expense Analytics</p>
         </div>
         
-        <div class="flex flex-wrap items-center gap-2.5">
-            <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center gap-1.5">
+        <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-emerald-500/20 flex items-center gap-1">
                 ➕ เพิ่มข้อมูลใหม่
             </button>
-            <label class="cursor-pointer bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition shadow-lg shadow-purple-500/20 flex items-center gap-1.5">
+            <label class="cursor-pointer bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-purple-500/20 flex items-center gap-1">
                 📂 นำเข้า Scrap.xlsx
                 <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileUpload(event)">
             </label>
-            <button onclick="exportToExcel()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5">
+            <button onclick="exportToExcel()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center gap-1">
                 📥 ส่งออก Excel
             </button>
         </div>
     </header>
 
     <!-- Filter Bar -->
-    <section class="card p-4 mb-6">
-        <div class="flex flex-wrap items-center gap-4">
-            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">🔍 ตัวกรอง:</span>
+    <section class="card p-3 mb-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <span class="text-xs font-semibold text-slate-300 flex items-center gap-1">🔍 ตัวกรอง:</span>
             
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">ตั้งแต่วันที่:</label>
-                <input type="date" id="startDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            <div class="flex items-center gap-1.5">
+                <label class="text-[11px] text-slate-400">ตั้งแต่วันที่:</label>
+                <input type="date" id="startDate" onchange="applyFilters()" class="px-2.5 py-1 rounded-md text-xs">
             </div>
 
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">ถึงวันที่:</label>
-                <input type="date" id="endDate" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            <div class="flex items-center gap-1.5">
+                <label class="text-[11px] text-slate-400">ถึงวันที่:</label>
+                <input type="date" id="endDate" onchange="applyFilters()" class="px-2.5 py-1 rounded-md text-xs">
             </div>
 
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">Model:</label>
-                <select id="filterModel" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            <div class="flex items-center gap-1.5">
+                <label class="text-[11px] text-slate-400">Model:</label>
+                <select id="filterModel" onchange="applyFilters()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทั้งหมด (All Models)</option>
                 </select>
             </div>
 
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">กะ:</label>
-                <select id="filterShift" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            <div class="flex items-center gap-1.5">
+                <label class="text-[11px] text-slate-400">กะ:</label>
+                <select id="filterShift" onchange="applyFilters()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทั้งหมด (All Shifts)</option>
                 </select>
             </div>
 
-            <div class="flex items-center gap-2">
-                <label class="text-xs text-slate-400">เดือน:</label>
-                <select id="filterMonth" onchange="applyFilters()" class="px-3 py-1.5 rounded-lg text-xs font-medium">
+            <div class="flex items-center gap-1.5">
+                <label class="text-[11px] text-slate-400">เดือน:</label>
+                <select id="filterMonth" onchange="applyFilters()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทั้งหมด (All Months)</option>
                 </select>
             </div>
@@ -93,100 +93,100 @@
     </section>
 
     <!-- Main Container -->
-    <main class="max-w-7xl mx-auto space-y-6">
+    <main class="max-w-7xl mx-auto space-y-4">
 
         <!-- 4 KPI Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="card p-5">
-                <p class="text-xs text-slate-400 font-medium">Total Scrap Expenses</p>
-                <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalCost">฿0.00</h3>
-                <span class="text-[10px] text-purple-400 font-semibold mt-2 inline-block">● Quantity × Price</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="card p-4">
+                <p class="text-[11px] text-slate-400 font-medium">Total Scrap Expenses</p>
+                <h3 class="text-xl font-bold text-white mt-0.5" id="kpiTotalCost">฿0.00</h3>
+                <span class="text-[10px] text-purple-400 font-semibold mt-1 inline-block">● Quantity × Price</span>
             </div>
-            <div class="card p-5">
-                <p class="text-xs text-slate-400 font-medium">Total Defect Quantity</p>
-                <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalQty">0 pcs</h3>
-                <span class="text-[10px] text-emerald-400 font-semibold mt-2 inline-block">● Total defect units</span>
+            <div class="card p-4">
+                <p class="text-[11px] text-slate-400 font-medium">Total Defect Quantity</p>
+                <h3 class="text-xl font-bold text-white mt-0.5" id="kpiTotalQty">0 pcs</h3>
+                <span class="text-[10px] text-emerald-400 font-semibold mt-1 inline-block">● Total defect units</span>
             </div>
-            <div class="card p-5">
-                <p class="text-xs text-slate-400 font-medium">Total Incidents</p>
-                <h3 class="text-2xl font-bold text-white mt-1" id="kpiTotalCases">0 cases</h3>
-                <span class="text-[10px] text-indigo-400 font-semibold mt-2 inline-block">● Total entries</span>
+            <div class="card p-4">
+                <p class="text-[11px] text-slate-400 font-medium">Total Incidents</p>
+                <h3 class="text-xl font-bold text-white mt-0.5" id="kpiTotalCases">0 cases</h3>
+                <span class="text-[10px] text-indigo-400 font-semibold mt-1 inline-block">● Total entries</span>
             </div>
-            <div class="card p-5">
-                <p class="text-xs text-slate-400 font-medium">Top Defect Cause</p>
-                <h3 class="text-lg font-bold text-white mt-1 truncate" id="kpiTopProblem">-</h3>
-                <span class="text-[10px] text-rose-400 font-semibold mt-2 inline-block">● Highest defect quantity</span>
+            <div class="card p-4">
+                <p class="text-[11px] text-slate-400 font-medium">Top Defect Cause</p>
+                <h3 class="text-base font-bold text-white mt-0.5 truncate" id="kpiTopProblem">-</h3>
+                <span class="text-[10px] text-rose-400 font-semibold mt-1 inline-block">● Highest defect quantity</span>
             </div>
         </div>
 
         <!-- Charts Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <!-- Glowing Neon Line Chart -->
-            <div class="card p-6 lg:col-span-2 flex flex-col justify-between">
-                <div class="flex justify-between items-center mb-2">
+            <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-1">
                     <div>
-                        <h3 class="text-base font-semibold text-slate-100">Revenue & Usage Trend</h3>
-                        <p class="text-xs text-slate-400">Interactive glowing cursor trend curve</p>
+                        <h3 class="text-sm font-semibold text-slate-100">Revenue & Usage Trend</h3>
+                        <p class="text-[11px] text-slate-400">Interactive glowing cursor trend curve</p>
                     </div>
-                    <div class="flex items-center gap-3 text-xs font-medium">
-                        <span class="flex items-center gap-1.5"><span class="w-3 h-1 rounded-full bg-[#10B981] inline-block shadow-[0_0_8px_#10B981]"></span> Current</span>
-                        <!-- นำ Previous Legend ออกไปแล้ว -->
+                    <div class="flex items-center gap-2 text-xs font-medium">
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded-full bg-[#10B981] inline-block shadow-[0_0_6px_#10B981]"></span> Current</span>
                     </div>
                 </div>
-                <div class="h-64 relative mt-2">
+                <div class="h-56 relative mt-1">
                     <canvas id="dailyChart"></canvas>
                 </div>
             </div>
 
             <!-- Semi-Circle Gauge Chart -->
-            <div class="card p-6 flex flex-col justify-between">
+            <div class="card p-4 flex flex-col justify-between">
                 <div>
-                    <h3 class="text-base font-semibold text-slate-100 mb-0.5">Department Share</h3>
-                    <p class="text-xs text-slate-400 mb-2">Expenses by Department Index</p>
+                    <h3 class="text-sm font-semibold text-slate-100 mb-0.5">Department Share</h3>
+                    <p class="text-[11px] text-slate-400 mb-1">Expenses by Department Index</p>
                 </div>
                 
-                <div class="relative h-44 flex items-center justify-center">
+                <div class="relative h-36 flex items-center justify-center">
                     <canvas id="deptChart"></canvas>
-                    <div class="absolute bottom-2 left-1/2 -translate-x-1/2 text-center pointer-events-none">
-                        <span id="deptCenterValue" class="text-3xl font-extrabold text-white block leading-tight">0%</span>
-                        <span id="deptCenterLabel" class="text-[11px] text-slate-400 block font-medium">Top Share</span>
+                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 text-center pointer-events-none">
+                        <span id="deptCenterValue" class="text-2xl font-extrabold text-white block leading-tight">0%</span>
+                        <span id="deptCenterLabel" class="text-[10px] text-slate-400 block font-medium">Top Share</span>
                     </div>
                 </div>
 
-                <div id="deptLegend" class="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 pt-3 border-t border-[#262D3D] text-xs">
+                <div id="deptLegend" class="grid grid-cols-2 gap-x-3 gap-y-1 mt-1 pt-2 border-t border-[#262D3D] text-[11px]">
                 </div>
             </div>
         </div>
 
         <!-- Bottom Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="card p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-semibold text-slate-200">⚠️ Top 10 Defect Problems Pareto Analysis</h3>
-                    <span class="text-xs text-purple-400 font-medium">Top 10 Only</span>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="card p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-semibold text-slate-200">⚠️ Top 10 Defect Problems Pareto Analysis</h3>
+                    <span class="text-[11px] text-purple-400 font-medium">Top 10 Only</span>
                 </div>
-                <div class="h-64 relative">
+                <div class="h-56 relative">
                     <canvas id="problemChart"></canvas>
                 </div>
             </div>
 
-            <div class="card p-6 flex flex-col justify-between">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-base font-semibold text-slate-200 flex items-center gap-2">📋 Recent Data Records</h3>
+            <!-- Table Record Card -->
+            <div class="card p-4 flex flex-col justify-between overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">📋 Recent Data Records</h3>
                 </div>
-                <div class="overflow-x-auto h-64">
-                    <table class="w-full text-left text-xs text-slate-300">
+                <div class="overflow-x-auto h-56">
+                    <table class="w-full text-left text-[11px] text-slate-300">
                         <thead class="text-slate-400 bg-[#1E2532] uppercase sticky top-0">
                             <tr>
-                                <th class="py-2.5 px-3">DATE</th>
-                                <th class="py-2.5 px-3">MONTH</th>
-                                <th class="py-2.5 px-3">MODEL</th>
-                                <th class="py-2.5 px-3">SHIFT</th>
-                                <th class="py-2.5 px-3">DEPT</th>
-                                <th class="py-2.5 px-3">PROBLEM</th>
-                                <th class="py-2.5 px-3 text-right">QTY</th>
-                                <th class="py-2.5 px-3 text-right">AMT (฿)</th>
+                                <th class="py-2 px-2 whitespace-nowrap">DATE</th>
+                                <th class="py-2 px-2 whitespace-nowrap">MONTH</th>
+                                <th class="py-2 px-2 whitespace-nowrap">MODEL</th>
+                                <th class="py-2 px-2 whitespace-nowrap">SHIFT</th>
+                                <th class="py-2 px-2 whitespace-nowrap">DEPT</th>
+                                <th class="py-2 px-2 whitespace-nowrap">PROBLEM</th>
+                                <th class="py-2 px-2 whitespace-nowrap text-right">QTY</th>
+                                <th class="py-2 px-2 whitespace-nowrap text-right">AMT (฿)</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
@@ -203,21 +203,21 @@
 
     <!-- Modal Form -->
     <div id="addModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center hidden z-50 p-4">
-        <div class="card max-w-md w-full p-6 space-y-4 shadow-2xl border-slate-700">
-            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">➕ เพิ่มข้อมูล Scrap ใหม่</h3>
-                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+        <div class="card max-w-md w-full p-5 space-y-3 shadow-2xl border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">➕ เพิ่มข้อมูล Scrap ใหม่</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white font-bold text-lg">&times;</button>
             </div>
 
-            <form id="addRecordForm" onsubmit="saveNewRecord(event)" class="space-y-3">
-                <div class="grid grid-cols-2 gap-3">
+            <form id="addRecordForm" onsubmit="saveNewRecord(event)" class="space-y-2.5">
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Date</label>
-                        <input type="date" id="inputDate" required class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Date</label>
+                        <input type="date" id="inputDate" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Month</label>
-                        <select id="inputMonth" class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Month</label>
+                        <select id="inputMonth" class="w-full px-2.5 py-1.5 rounded-md text-xs">
                             <option value="Jan">Jan</option><option value="Feb">Feb</option>
                             <option value="Mar">Mar</option><option value="Apr">Apr</option>
                             <option value="May">May</option><option value="Jun">Jun</option>
@@ -228,14 +228,14 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Model</label>
-                        <input type="text" id="inputModel" required class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Model</label>
+                        <input type="text" id="inputModel" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Shift</label>
-                        <select id="inputShift" class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Shift</label>
+                        <select id="inputShift" class="w-full px-2.5 py-1.5 rounded-md text-xs">
                             <option value="Day Shift">Day Shift</option>
                             <option value="Night Shift">Night Shift</option>
                         </select>
@@ -243,29 +243,29 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Dept</label>
-                    <input type="text" id="inputDept" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    <label class="block text-[11px] text-slate-400 mb-0.5">Dept</label>
+                    <input type="text" id="inputDept" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                 </div>
 
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Problem</label>
-                    <input type="text" id="inputProb" required class="w-full px-3 py-2 rounded-lg text-xs">
+                    <label class="block text-[11px] text-slate-400 mb-0.5">Problem</label>
+                    <input type="text" id="inputProb" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Quantity</label>
-                        <input type="number" id="inputQty" min="1" value="1" required class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Quantity</label>
+                        <input type="number" id="inputQty" min="1" value="1" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                     </div>
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">Price/Unit (฿)</label>
-                        <input type="number" step="0.01" id="inputPrice" required class="w-full px-3 py-2 rounded-lg text-xs">
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Price/Unit (฿)</label>
+                        <input type="number" step="0.01" id="inputPrice" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                     </div>
                 </div>
 
-                <div class="pt-3 flex justify-end gap-2">
-                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold">ยกเลิก</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">บันทึกข้อมูล</button>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeAddModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-md text-xs font-semibold">ยกเลิก</button>
+                    <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold">บันทึกข้อมูล</button>
                 </div>
             </form>
         </div>
@@ -300,14 +300,14 @@
                     ctx.stroke();
 
                     ctx.beginPath();
-                    ctx.arc(x, y, 7, 0, 2 * Math.PI);
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
                     ctx.fillStyle = '#10B981';
                     ctx.shadowColor = '#10B981';
-                    ctx.shadowBlur = 16;
+                    ctx.shadowBlur = 14;
                     ctx.fill();
 
                     ctx.beginPath();
-                    ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                    ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
                     ctx.fillStyle = '#0B0E14';
                     ctx.shadowBlur = 0;
                     ctx.fill();
@@ -543,7 +543,7 @@
             const labels = sortedDates.map(d => grouped[d].displayDate);
             const currentValues = sortedDates.map(d => grouped[d].amt);
 
-            const gradientFill = ctx.createLinearGradient(0, 0, 0, 240);
+            const gradientFill = ctx.createLinearGradient(0, 0, 0, 200);
             gradientFill.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
             gradientFill.addColorStop(0.7, 'rgba(16, 185, 129, 0.04)');
             gradientFill.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
@@ -557,7 +557,7 @@
                             label: 'Current',
                             data: currentValues,
                             borderColor: '#10B981',
-                            borderWidth: 3,
+                            borderWidth: 2.5,
                             tension: 0.45,
                             fill: true,
                             backgroundColor: gradientFill,
@@ -580,9 +580,9 @@
                             titleColor: '#000000',
                             bodyColor: '#000000',
                             titleFont: { family: 'Kanit', weight: 'bold', size: 10 },
-                            bodyFont: { family: 'Kanit', weight: 'bold', size: 12 },
-                            padding: { top: 6, bottom: 6, left: 12, right: 12 },
-                            cornerRadius: 20,
+                            bodyFont: { family: 'Kanit', weight: 'bold', size: 11 },
+                            padding: { top: 4, bottom: 4, left: 10, right: 10 },
+                            cornerRadius: 16,
                             displayColors: false,
                             callbacks: {
                                 title: () => '',
@@ -599,13 +599,13 @@
                     scales: {
                         x: {
                             grid: { color: 'rgba(255, 255, 255, 0.03)' },
-                            ticks: { color: '#64748B', font: { size: 10, family: 'Kanit' } }
+                            ticks: { color: '#64748B', font: { size: 9, family: 'Kanit' } }
                         },
                         y: {
                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
                             ticks: {
                                 color: '#64748B',
-                                font: { size: 10, family: 'Kanit' },
+                                font: { size: 9, family: 'Kanit' },
                                 callback: val => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val
                             }
                         }
@@ -643,11 +643,11 @@
 
                 legendContainer.innerHTML += `
                     <div class="flex items-center justify-between py-0.5">
-                        <div class="flex items-center gap-2 truncate">
-                            <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0" style="background-color: ${color}"></span>
+                        <div class="flex items-center gap-1.5 truncate">
+                            <span class="w-2 h-2 rounded-full inline-block shrink-0" style="background-color: ${color}"></span>
                             <span class="text-slate-300 truncate">${label}</span>
                         </div>
-                        <span class="font-bold text-white ml-2">${pct}%</span>
+                        <span class="font-bold text-white ml-1">${pct}%</span>
                     </div>
                 `;
             });
@@ -659,9 +659,9 @@
                     datasets: [{
                         data: values,
                         backgroundColor: colors.slice(0, labels.length),
-                        borderWidth: 3,
+                        borderWidth: 2,
                         borderColor: '#151A23',
-                        hoverOffset: 6
+                        hoverOffset: 4
                     }]
                 },
                 options: {
@@ -689,15 +689,12 @@
             });
         }
 
-        // Pareto Chart (Filtered to Top 10 Defect Problems Only)
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
 
-            // 1. คำนวณยอดรวม Defect ทั้งหมด
             const grandTotal = Object.values(probMap).reduce((sum, v) => sum + v, 0);
 
-            // 2. เรียงลำดับจากมากไปน้อย และคัดเอาเฉพาะ Top 10
             const sortedTop10 = Object.entries(probMap)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 10);
@@ -705,7 +702,6 @@
             const labels = sortedTop10.map(item => item[0]);
             const values = sortedTop10.map(item => item[1]);
 
-            // 3. คำนวณ % สะสม
             let accum = 0;
             const cumulativePct = values.map(v => {
                 accum += v;
@@ -723,7 +719,7 @@
                             borderColor: '#EC4899',
                             backgroundColor: '#EC4899',
                             borderWidth: 2,
-                            pointRadius: 4,
+                            pointRadius: 3,
                             pointBackgroundColor: '#EC4899',
                             yAxisID: 'y1',
                             order: 1
@@ -733,7 +729,7 @@
                             label: 'Defect Qty',
                             data: values,
                             backgroundColor: '#38BDF8',
-                            borderRadius: 6,
+                            borderRadius: 4,
                             yAxisID: 'y',
                             order: 2
                         }
@@ -743,14 +739,14 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: '#94A3B8', font: { size: 11, family: 'Kanit' } } }
+                        legend: { labels: { color: '#94A3B8', font: { size: 10, family: 'Kanit' } } }
                     },
                     scales: {
                         x: { 
                             grid: { display: false }, 
                             ticks: { 
                                 color: '#94A3B8', 
-                                font: { size: 10, family: 'Kanit' },
+                                font: { size: 9, family: 'Kanit' },
                                 maxRotation: 45,
                                 minRotation: 20
                             } 
@@ -759,8 +755,8 @@
                             type: 'linear',
                             position: 'left',
                             grid: { color: '#1E293B' },
-                            ticks: { color: '#94A3B8', font: { family: 'Kanit' } },
-                            title: { display: true, text: 'Defect Qty', color: '#94A3B8', font: { family: 'Kanit' } }
+                            ticks: { color: '#94A3B8', font: { size: 9, family: 'Kanit' } },
+                            title: { display: true, text: 'Defect Qty', color: '#94A3B8', font: { size: 9, family: 'Kanit' } }
                         },
                         y1: {
                             type: 'linear',
@@ -768,32 +764,33 @@
                             min: 0,
                             max: 100,
                             grid: { drawOnChartArea: false },
-                            ticks: { color: '#EC4899', callback: value => value + '%', font: { family: 'Kanit' } },
-                            title: { display: true, text: 'Cumulative %', color: '#EC4899', font: { family: 'Kanit' } }
+                            ticks: { color: '#EC4899', callback: value => value + '%', font: { size: 9, family: 'Kanit' } },
+                            title: { display: true, text: 'Cumulative %', color: '#EC4899', font: { size: 9, family: 'Kanit' } }
                         }
                     }
                 }
             });
         }
 
+        // Render Compact Table Records
         function renderTable(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             if (rows.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
                 return;
             }
             rows.slice(0, 15).forEach(r => {
                 tbody.innerHTML += `
-                    <tr class="hover:bg-[#1E2532] transition">
-                        <td class="py-2.5 px-3 font-semibold text-white">${r.displayDate}</td>
-                        <td class="py-2.5 px-3 text-slate-300">${r.month}</td>
-                        <td class="py-2.5 px-3 text-amber-400 font-medium">${r.model}</td>
-                        <td class="py-2.5 px-3 text-slate-300">${r.shift}</td>
-                        <td class="py-2.5 px-3 text-purple-300 font-medium">${r.dept}</td>
-                        <td class="py-2.5 px-3 text-slate-200 truncate max-w-[150px]">${r.prob}</td>
-                        <td class="py-2.5 px-3 text-right text-emerald-400 font-bold">${r.qty}</td>
-                        <td class="py-2.5 px-3 text-right text-purple-400 font-bold">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <tr class="hover:bg-[#1E2532] transition text-[11px]">
+                        <td class="py-1.5 px-2 font-semibold text-white whitespace-nowrap">${r.displayDate}</td>
+                        <td class="py-1.5 px-2 text-slate-300 whitespace-nowrap">${r.month}</td>
+                        <td class="py-1.5 px-2 text-amber-400 font-medium whitespace-nowrap">${r.model}</td>
+                        <td class="py-1.5 px-2 text-slate-300 whitespace-nowrap">${r.shift}</td>
+                        <td class="py-1.5 px-2 text-purple-300 font-medium whitespace-nowrap">${r.dept}</td>
+                        <td class="py-1.5 px-2 text-slate-200 truncate max-w-[120px]">${r.prob}</td>
+                        <td class="py-1.5 px-2 text-right text-emerald-400 font-bold whitespace-nowrap">${r.qty}</td>
+                        <td class="py-1.5 px-2 text-right text-purple-400 font-bold whitespace-nowrap">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
