@@ -122,7 +122,7 @@
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
-            <!-- Glowing Neon Line Chart -->
+            <!-- Glowing Neon Line Chart (Blue-Cyan Tone) -->
             <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-1">
                     <div>
@@ -130,7 +130,7 @@
                         <p class="text-[11px] text-slate-400">Interactive glowing cursor trend curve</p>
                     </div>
                     <div class="flex items-center gap-2 text-xs font-medium">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded-full bg-[#10B981] inline-block shadow-[0_0_6px_#10B981]"></span> Current</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded-full bg-[#38BDF8] inline-block shadow-[0_0_6px_#38BDF8]"></span> Current</span>
                     </div>
                 </div>
                 <div class="h-56 relative mt-1">
@@ -277,6 +277,7 @@
         let deptChartInstance = null;
         let problemChartInstance = null;
 
+        // Glowing cursor plugin updated to blue-cyan (#38BDF8)
         const glowingHighlightPlugin = {
             id: 'glowingHighlight',
             afterDraw: (chart) => {
@@ -294,15 +295,15 @@
                     ctx.moveTo(x, y);
                     ctx.lineTo(x, bottomY);
                     ctx.lineWidth = 1.5;
-                    ctx.strokeStyle = '#10B981';
-                    ctx.shadowColor = '#10B981';
+                    ctx.strokeStyle = '#38BDF8';
+                    ctx.shadowColor = '#38BDF8';
                     ctx.shadowBlur = 12;
                     ctx.stroke();
 
                     ctx.beginPath();
                     ctx.arc(x, y, 6, 0, 2 * Math.PI);
-                    ctx.fillStyle = '#10B981';
-                    ctx.shadowColor = '#10B981';
+                    ctx.fillStyle = '#38BDF8';
+                    ctx.shadowColor = '#38BDF8';
                     ctx.shadowBlur = 14;
                     ctx.fill();
 
@@ -543,10 +544,11 @@
             const labels = sortedDates.map(d => grouped[d].displayDate);
             const currentValues = sortedDates.map(d => grouped[d].amt);
 
+            // Blue-Cyan Gradient fill
             const gradientFill = ctx.createLinearGradient(0, 0, 0, 200);
-            gradientFill.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
-            gradientFill.addColorStop(0.7, 'rgba(16, 185, 129, 0.04)');
-            gradientFill.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+            gradientFill.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+            gradientFill.addColorStop(0.7, 'rgba(56, 189, 248, 0.04)');
+            gradientFill.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
 
             dailyChartInstance = new Chart(ctx, {
                 type: 'line',
@@ -556,7 +558,7 @@
                         {
                             label: 'Current',
                             data: currentValues,
-                            borderColor: '#10B981',
+                            borderColor: '#38BDF8',
                             borderWidth: 2.5,
                             tension: 0.45,
                             fill: true,
@@ -576,7 +578,7 @@
                         legend: { display: false },
                         tooltip: {
                             enabled: true,
-                            backgroundColor: '#10B981',
+                            backgroundColor: '#38BDF8',
                             titleColor: '#000000',
                             bodyColor: '#000000',
                             titleFont: { family: 'Kanit', weight: 'bold', size: 10 },
@@ -772,7 +774,6 @@
             });
         }
 
-        // Render Compact Table Records
         function renderTable(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
