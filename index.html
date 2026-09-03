@@ -131,7 +131,7 @@
                 <div class="flex justify-between items-center mb-1">
                     <div>
                         <h3 class="text-sm font-semibold text-slate-100">Revenue & Usage Trend</h3>
-                        <p class="text-[11px] text-slate-400">Interactive glowing cursor trend curve</p>
+                        <p class="text-[11px] text-slate-400">Sum of Price per Day Area Chart</p>
                     </div>
                     <div class="flex items-center gap-2 text-xs font-medium">
                         <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded-full bg-[#38BDF8] inline-block shadow-[0_0_6px_#38BDF8]"></span> Current</span>
@@ -177,6 +177,7 @@
             <div class="card p-4 flex flex-col justify-between overflow-hidden">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">📋 Recent Data Records</h3>
+                    <span class="text-[11px] text-slate-400">10 รายการล่าสุด</span>
                 </div>
                 <div class="overflow-x-auto h-56">
                     <table class="w-full text-left text-[11px] text-slate-300">
@@ -189,7 +190,7 @@
                                 <th class="py-2 px-2 whitespace-nowrap">DEPT</th>
                                 <th class="py-2 px-2 whitespace-nowrap">PROBLEM</th>
                                 <th class="py-2 px-2 whitespace-nowrap text-right">QTY</th>
-                                <th class="py-2 px-2 whitespace-nowrap text-right">AMT (฿)</th>
+                                <th class="py-2 px-2 whitespace-nowrap text-right">PRICE (฿)</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
@@ -278,7 +279,7 @@
         // Supabase Configuration
         const SUPABASE_URL = 'https://vxxibyghvdlwuffygqnw.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4eGlieWdodmRsd3VmZnlncW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTIwODYsImV4cCI6MjEwMzk4ODA4Nn0.pMUpGBxCpwUMq88KpMf7SV9rXcrvWVpZ89AGBd2MGYU';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let supabase = null;
 
         let rawExcelData = [];
         let dailyChartInstance = null;
@@ -329,17 +330,18 @@
         function parseExcelDate(val) {
             if (!val) return { iso: '', display: 'N/A' };
 
-            // กรณีเป็น String ข้อความวันที่ ISO จาก Supabase โดยตรง (เช่น "2026-08-03")
+            // จัดรูปแบบ YYYY-MM-DD แบบมี 0 นำหน้า เพื่อการกรองและเปรียบเทียบที่ถูกต้อง
             if (typeof val === 'string' && val.includes('-')) {
                 const cleanDate = val.split('T')[0];
                 const parts = cleanDate.split('-');
                 if (parts.length === 3) {
-                    const [yyyy, mm, dd] = parts;
+                    const yyyy = parts[0];
+                    const mm = String(parts[1]).padStart(2, '0');
+                    const dd = String(parts[2]).padStart(2, '0');
                     return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
                 }
             }
 
-            // กรณีเป็นตัวเลข Serial Date จาก Excel หรือ Date String ทั่วไป
             let jsDate;
             let num = Number(val);
             if (!isNaN(num) && num > 1000) {
@@ -357,9 +359,12 @@
             return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
         }
 
-        // Fetch Data directly from Supabase
         async function fetchSupabaseData() {
             try {
+                if (!supabase && window.supabase) {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                }
+
                 const { data, error } = await supabase
                     .from('production_scrap')
                     .select('*')
@@ -370,7 +375,6 @@
                 rawExcelData = data.map(item => {
                     const parsedDate = parseExcelDate(item.date);
                     
-                    // อ่านค่าตรงตามชื่อคอลัมน์จริงในภาพฐานข้อมูล
                     const qty = parseFloat(item.quantity ?? item.qty ?? 0) || 0;
                     const price = parseFloat(item.price ?? 0) || 0;
 
@@ -393,7 +397,7 @@
 
             } catch (err) {
                 console.error('Error fetching data:', err.message);
-                alert('ไม่สามารถดึงข้อมูลจาก Supabase ได้: ' + err.message);
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="8" class="text-center py-6 text-rose-400">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
             }
         }
 
@@ -505,7 +509,6 @@
             document.getElementById('addModal').classList.add('hidden');
         }
 
-        // Save Record to Supabase
         async function saveNewRecord(event) {
             event.preventDefault();
 
@@ -596,6 +599,7 @@
             renderTable(data);
         }
 
+        // แสดงผลรวมคอลัมน์ Price ในแต่ละวัน (ตามกำหนด)
         function renderGlowingTrendChart(filteredData) {
             const canvas = document.getElementById('dailyChart');
             const ctx = canvas.getContext('2d');
@@ -605,14 +609,14 @@
             filteredData.forEach(r => {
                 if (!r.isoDate) return;
                 if (!grouped[r.isoDate]) {
-                    grouped[r.isoDate] = { displayDate: r.displayDate, amt: 0 };
+                    grouped[r.isoDate] = { displayDate: r.displayDate, totalPrice: 0 };
                 }
-                grouped[r.isoDate].amt += r.amt;
+                grouped[r.isoDate].totalPrice += r.price;
             });
 
             const sortedDates = Object.keys(grouped).sort();
             const labels = sortedDates.map(d => grouped[d].displayDate);
-            const currentValues = sortedDates.map(d => grouped[d].amt);
+            const currentValues = sortedDates.map(d => grouped[d].totalPrice);
 
             const gradientFill = ctx.createLinearGradient(0, 0, 0, 200);
             gradientFill.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
@@ -625,7 +629,7 @@
                     labels: labels,
                     datasets: [
                         {
-                            label: 'Current',
+                            label: 'Sum of Price',
                             data: currentValues,
                             borderColor: '#38BDF8',
                             borderWidth: 2.5,
@@ -685,6 +689,7 @@
             });
         }
 
+        // แสดงข้อมูลจาก Department Index
         function renderGaugeDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
@@ -760,6 +765,7 @@
             });
         }
 
+        // Pareto Analysis Top 10
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
@@ -843,6 +849,7 @@
             });
         }
 
+        // แสดงตาราง 10 รายการล่าสุด และคอลัมน์ PRICE (฿)
         function renderTable(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -850,7 +857,7 @@
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
                 return;
             }
-            rows.slice(0, 15).forEach(r => {
+            rows.slice(0, 10).forEach(r => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition text-[11px]">
                         <td class="py-1.5 px-2 font-semibold text-white whitespace-nowrap">${r.displayDate}</td>
@@ -860,13 +867,12 @@
                         <td class="py-1.5 px-2 text-purple-300 font-medium whitespace-nowrap">${r.dept}</td>
                         <td class="py-1.5 px-2 text-slate-200 truncate max-w-[120px]">${r.prob}</td>
                         <td class="py-1.5 px-2 text-right text-emerald-400 font-bold whitespace-nowrap">${r.qty}</td>
-                        <td class="py-1.5 px-2 text-right text-purple-400 font-bold whitespace-nowrap">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="py-1.5 px-2 text-right text-purple-400 font-bold whitespace-nowrap">฿${r.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
         }
 
-        // Auto load on start
         document.addEventListener('DOMContentLoaded', fetchSupabaseData);
     </script>
 </body>
