@@ -4,15 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Production Scrap Analytics Dashboard</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS (XLSX) CDN -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Supabase JS Client CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Google Font (Kanit) -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #0B0E14; color: #E2E8F0; }
@@ -39,10 +34,6 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2">
-            <a href="production-daily.html" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-sky-500/20 flex items-center gap-1.5">
-                📈 Production Daily
-            </a>
-
             <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-emerald-500/20 flex items-center gap-1">
                 ➕ เพิ่มข้อมูลใหม่
             </button>
@@ -104,9 +95,9 @@
         <!-- 4 KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="card p-4">
-                <p class="text-[11px] text-slate-400 font-medium">Total Scrap Expenses</p>
+                <p class="text-[11px] text-slate-400 font-medium">Total Price Sum</p>
                 <h3 class="text-xl font-bold text-white mt-0.5" id="kpiTotalCost">฿0.00</h3>
-                <span class="text-[10px] text-purple-400 font-semibold mt-1 inline-block">● Quantity × Price</span>
+                <span class="text-[10px] text-purple-400 font-semibold mt-1 inline-block">● Sum of Price</span>
             </div>
             <div class="card p-4">
                 <p class="text-[11px] text-slate-400 font-medium">Total Defect Quantity</p>
@@ -130,11 +121,8 @@
             <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-1">
                     <div>
-                        <h3 class="text-sm font-semibold text-slate-100">Revenue & Usage Trend</h3>
-                        <p class="text-[11px] text-slate-400">Interactive glowing cursor trend curve</p>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs font-medium">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-1 rounded-full bg-[#38BDF8] inline-block shadow-[0_0_6px_#38BDF8]"></span> Current</span>
+                        <h3 class="text-sm font-semibold text-slate-100">Revenue & Usage Trend (Price Sum Area Chart)</h3>
+                        <p class="text-[11px] text-slate-400">Daily Total Price Distribution</p>
                     </div>
                 </div>
                 <div class="h-56 relative mt-1">
@@ -145,7 +133,7 @@
             <div class="card p-4 flex flex-col justify-between">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-100 mb-0.5">Department Share</h3>
-                    <p class="text-[11px] text-slate-400 mb-1">Expenses by Department Index</p>
+                    <p class="text-[11px] text-slate-400 mb-1">Expenses by Department</p>
                 </div>
                 
                 <div class="relative h-36 flex items-center justify-center">
@@ -156,8 +144,7 @@
                     </div>
                 </div>
 
-                <div id="deptLegend" class="grid grid-cols-2 gap-x-3 gap-y-1 mt-1 pt-2 border-t border-[#262D3D] text-[11px]">
-                </div>
+                <div id="deptLegend" class="grid grid-cols-2 gap-x-3 gap-y-1 mt-1 pt-2 border-t border-[#262D3D] text-[11px]"></div>
             </div>
         </div>
 
@@ -176,7 +163,7 @@
             <!-- Table Record Card -->
             <div class="card p-4 flex flex-col justify-between overflow-hidden">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">📋 Recent Data Records</h3>
+                    <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">📋 Recent Data Records (10 Latest)</h3>
                 </div>
                 <div class="overflow-x-auto h-56">
                     <table class="w-full text-left text-[11px] text-slate-300">
@@ -189,7 +176,7 @@
                                 <th class="py-2 px-2 whitespace-nowrap">DEPT</th>
                                 <th class="py-2 px-2 whitespace-nowrap">PROBLEM</th>
                                 <th class="py-2 px-2 whitespace-nowrap text-right">QTY</th>
-                                <th class="py-2 px-2 whitespace-nowrap text-right">AMT (฿)</th>
+                                <th class="py-2 px-2 whitespace-nowrap text-right">PRICE (฿)</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
@@ -261,7 +248,7 @@
                         <input type="number" id="inputQty" min="1" value="1" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                     </div>
                     <div>
-                        <label class="block text-[11px] text-slate-400 mb-0.5">Price/Unit (฿)</label>
+                        <label class="block text-[11px] text-slate-400 mb-0.5">Price (฿)</label>
                         <input type="number" step="0.01" id="inputPrice" required class="w-full px-2.5 py-1.5 rounded-md text-xs">
                     </div>
                 </div>
@@ -275,7 +262,7 @@
     </div>
 
     <script>
-        // Supabase Configuration
+        // Supabase Credentials
         const SUPABASE_URL = 'https://vxxibyghvdlwuffygqnw.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4eGlieWdodmRsd3VmZnlncW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTIwODYsImV4cCI6MjEwMzk4ODA4Nn0.pMUpGBxCpwUMq88KpMf7SV9rXcrvWVpZ89AGBd2MGYU';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -284,47 +271,6 @@
         let dailyChartInstance = null;
         let deptChartInstance = null;
         let problemChartInstance = null;
-
-        // Glowing cursor plugin
-        const glowingHighlightPlugin = {
-            id: 'glowingHighlight',
-            afterDraw: (chart) => {
-                const activeElements = chart.getActiveElements();
-                if (activeElements && activeElements.length > 0) {
-                    const ctx = chart.ctx;
-                    const activePoint = activeElements[0];
-                    const x = activePoint.element.x;
-                    const y = activePoint.element.y;
-                    const bottomY = chart.scales.y.bottom;
-
-                    ctx.save();
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(x, y);
-                    ctx.lineTo(x, bottomY);
-                    ctx.lineWidth = 1.5;
-                    ctx.strokeStyle = '#38BDF8';
-                    ctx.shadowColor = '#38BDF8';
-                    ctx.shadowBlur = 12;
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.arc(x, y, 6, 0, 2 * Math.PI);
-                    ctx.fillStyle = '#38BDF8';
-                    ctx.shadowColor = '#38BDF8';
-                    ctx.shadowBlur = 14;
-                    ctx.fill();
-
-                    ctx.beginPath();
-                    ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
-                    ctx.fillStyle = '#0B0E14';
-                    ctx.shadowBlur = 0;
-                    ctx.fill();
-
-                    ctx.restore();
-                }
-            }
-        };
 
         function parseExcelDate(val) {
             if (!val) return { iso: '', display: 'N/A' };
@@ -336,7 +282,7 @@
                 jsDate = new Date(val);
             }
 
-            if (isNaN(jsDate.getTime())) return { iso: '', display: String(val) };
+            if (isNaN(jsDate.getTime())) return { iso: String(val), display: String(val) };
 
             const yyyy = jsDate.getFullYear();
             const mm = String(jsDate.getMonth() + 1).padStart(2, '0');
@@ -345,7 +291,6 @@
             return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
         }
 
-        // Fetch Data directly from Supabase
         async function fetchSupabaseData() {
             try {
                 const { data, error } = await supabase
@@ -353,24 +298,32 @@
                     .select('*')
                     .order('date', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    alert(' Supabase Error: ' + error.message + '\nกรุณาเช็ค RLS Policy ใน Supabase');
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-amber-400">ไม่พบข้อมูลในตาราง production_scrap (ฐานข้อมูลว่างเปล่า)</td></tr>';
+                    return;
+                }
 
                 rawExcelData = data.map(item => {
                     const parsedDate = parseExcelDate(item.date);
-                    const qty = parseFloat(item.quantity) || 0;
+                    const qty = parseFloat(item.quantity || item.qty) || 0;
                     const price = parseFloat(item.price) || 0;
 
                     return {
-                        isoDate: item.date || parsedDate.iso,
+                        isoDate: parsedDate.iso,
                         displayDate: parsedDate.display,
-                        month: item.month || 'Unknown',
+                        month: item.month || 'N/A',
                         model: item.model || 'N/A',
                         shift: item.shift || 'N/A',
-                        dept: item.department || 'N/A',
-                        prob: item.problem || 'N/A',
+                        dept: item.department || item.dept || 'N/A',
+                        prob: item.problem || item.prob || 'N/A',
                         qty: qty,
-                        price: price,
-                        amt: qty * price
+                        price: price
                     };
                 });
 
@@ -378,8 +331,8 @@
                 applyFilters();
 
             } catch (err) {
-                console.error('Error fetching data:', err.message);
-                alert('ไม่สามารถดึงข้อมูลจาก Supabase ได้: ' + err.message);
+                console.error('Fetch Exception:', err);
+                alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message);
             }
         }
 
@@ -405,23 +358,22 @@
                         };
 
                         let qty = parseFloat(getVal(['Quantity', 'QTY', 'Qty', 'จำนวน'])) || 0;
-                        let price = parseFloat(getVal(['Price', 'Price/Unit', 'PRICE', 'ราคา'])) || 0;
+                        let price = parseFloat(getVal(['Price', 'PRICE', 'ราคา'])) || 0;
                         let dateVal = getVal(['Date', 'DATE', 'วันที่']);
                         let parsedDate = parseExcelDate(dateVal);
 
                         return {
                             isoDate: parsedDate.iso,
                             displayDate: parsedDate.display,
-                            month: getVal(['Month', 'MONTH', 'เดือน']) || 'Unknown',
+                            month: getVal(['Month', 'MONTH', 'เดือน']) || 'N/A',
                             model: getVal(['Model', 'MODEL', 'รุ่น']) || 'N/A',
                             shift: getVal(['Shift', 'SHIFT', 'กะ']) || 'N/A',
                             dept: getVal(['Department', 'Dept', 'DEPT', 'แผนก']) || 'N/A',
                             prob: getVal(['Problem', 'Prob', 'PROBLEM', 'ปัญหา']) || 'N/A',
                             qty: qty,
-                            price: price,
-                            amt: qty * price
+                            price: price
                         };
-                    }).filter(r => r.qty > 0 || r.price > 0 || r.amt > 0);
+                    });
 
                     setupFilters(rawExcelData);
                     applyFilters();
@@ -433,19 +385,13 @@
         }
 
         function setupFilters(data) {
-            const models = [...new Set(data.map(d => d.model))].filter(m => m !== 'N/A' && m !== '');
-            const shifts = [...new Set(data.map(d => d.shift))];
-            const months = [...new Set(data.map(d => d.month))];
+            const models = [...new Set(data.map(d => d.model))].filter(m => m && m !== 'N/A');
+            const shifts = [...new Set(data.map(d => d.shift))].filter(s => s && s !== 'N/A');
+            const months = [...new Set(data.map(d => d.month))].filter(m => m && m !== 'N/A');
             
             document.getElementById('filterModel').innerHTML = '<option value="ALL">ทั้งหมด (All Models)</option>' + models.map(m => `<option value="${m}">${m}</option>`).join('');
             document.getElementById('filterShift').innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
             document.getElementById('filterMonth').innerHTML = '<option value="ALL">ทั้งหมด (All Months)</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
-
-            const isoDates = data.map(d => d.isoDate).filter(d => d !== '').sort();
-            if (isoDates.length > 0) {
-                document.getElementById('startDate').value = isoDates[0];
-                document.getElementById('endDate').value = isoDates[isoDates.length - 1];
-            }
         }
 
         function applyFilters() {
@@ -471,14 +417,8 @@
             document.getElementById('filterModel').value = 'ALL';
             document.getElementById('filterShift').value = 'ALL';
             document.getElementById('filterMonth').value = 'ALL';
-            const isoDates = rawExcelData.map(d => d.isoDate).filter(d => d !== '').sort();
-            if (isoDates.length > 0) {
-                document.getElementById('startDate').value = isoDates[0];
-                document.getElementById('endDate').value = isoDates[isoDates.length - 1];
-            } else {
-                document.getElementById('startDate').value = '';
-                document.getElementById('endDate').value = '';
-            }
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
             applyFilters();
         }
 
@@ -491,7 +431,6 @@
             document.getElementById('addModal').classList.add('hidden');
         }
 
-        // Save Record to Supabase
         async function saveNewRecord(event) {
             event.preventDefault();
 
@@ -547,42 +486,42 @@
                 'Department': r.dept,
                 'Problem': r.prob,
                 'Quantity': r.qty,
-                'Price': r.price,
-                'Amount': r.amt
+                'Price': r.price
             }));
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "ScrapData");
-            XLSX.writeFile(wb, "Scrap_Updated_Data.xlsx");
+            XLSX.writeFile(wb, "Scrap_Data.xlsx");
         }
 
         function renderDashboard(data) {
-            let totalCost = 0;
+            let totalPriceSum = 0;
             let totalQty = 0;
             let deptMap = {};
             let probMap = {};
 
             data.forEach(r => {
-                totalCost += r.amt;
+                totalPriceSum += r.price;
                 totalQty += r.qty;
-                deptMap[r.dept] = (deptMap[r.dept] || 0) + r.amt;
+                deptMap[r.dept] = (deptMap[r.dept] || 0) + r.price;
                 probMap[r.prob] = (probMap[r.prob] || 0) + r.qty;
             });
 
-            document.getElementById('kpiTotalCost').innerText = '฿' + totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('kpiTotalCost').innerText = '฿' + totalPriceSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('kpiTotalQty').innerText = totalQty.toLocaleString() + ' pcs';
             document.getElementById('kpiTotalCases').innerText = data.length + ' cases';
 
             let topProblem = Object.keys(probMap).length > 0 ? Object.keys(probMap).reduce((a, b) => probMap[a] > probMap[b] ? a : b) : '-';
             document.getElementById('kpiTopProblem').innerText = topProblem;
 
-            renderGlowingTrendChart(data);
+            renderAreaTrendChart(data);
             renderGaugeDeptChart(deptMap);
             renderProblemParetoChart(probMap);
             renderTable(data);
         }
 
-        function renderGlowingTrendChart(filteredData) {
+        // 1. Area Chart: Sum of Price Per Day
+        function renderAreaTrendChart(filteredData) {
             const canvas = document.getElementById('dailyChart');
             const ctx = canvas.getContext('2d');
             if (dailyChartInstance) dailyChartInstance.destroy();
@@ -591,79 +530,54 @@
             filteredData.forEach(r => {
                 if (!r.isoDate) return;
                 if (!grouped[r.isoDate]) {
-                    grouped[r.isoDate] = { displayDate: r.displayDate, amt: 0 };
+                    grouped[r.isoDate] = { displayDate: r.displayDate, priceSum: 0 };
                 }
-                grouped[r.isoDate].amt += r.amt;
+                grouped[r.isoDate].priceSum += r.price;
             });
 
             const sortedDates = Object.keys(grouped).sort();
             const labels = sortedDates.map(d => grouped[d].displayDate);
-            const currentValues = sortedDates.map(d => grouped[d].amt);
+            const priceValues = sortedDates.map(d => grouped[d].priceSum);
 
-            const gradientFill = ctx.createLinearGradient(0, 0, 0, 200);
-            gradientFill.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
-            gradientFill.addColorStop(0.7, 'rgba(56, 189, 248, 0.04)');
-            gradientFill.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
 
             dailyChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: 'Current',
-                            data: currentValues,
-                            borderColor: '#38BDF8',
-                            borderWidth: 2.5,
-                            tension: 0.45,
-                            fill: true,
-                            backgroundColor: gradientFill,
-                            pointRadius: 0,
-                            pointHoverRadius: 0,
-                            order: 1
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Price Sum',
+                        data: priceValues,
+                        borderColor: '#8B5CF6',
+                        borderWidth: 2,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#C084FC'
+                    }]
                 },
-                plugins: [glowingHighlightPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            enabled: true,
-                            backgroundColor: '#38BDF8',
-                            titleColor: '#000000',
-                            bodyColor: '#000000',
-                            titleFont: { family: 'Kanit', weight: 'bold', size: 10 },
-                            bodyFont: { family: 'Kanit', weight: 'bold', size: 11 },
-                            padding: { top: 4, bottom: 4, left: 10, right: 10 },
-                            cornerRadius: 16,
-                            displayColors: false,
                             callbacks: {
-                                title: () => '',
-                                label: function(context) {
-                                    if (context.datasetIndex === 0) {
-                                        let val = context.raw || 0;
-                                        return `↗ ฿${val.toLocaleString()}`;
-                                    }
-                                    return null;
-                                }
+                                label: ctx => ` ฿${ctx.raw.toLocaleString()}`
                             }
                         }
                     },
                     scales: {
-                        x: {
-                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
-                            ticks: { color: '#64748B', font: { size: 9, family: 'Kanit' } }
-                        },
+                        x: { grid: { color: '#1E293B' }, ticks: { color: '#94A3B8', font: { size: 9, family: 'Kanit' } } },
                         y: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            grid: { color: '#1E293B' },
                             ticks: {
-                                color: '#64748B',
+                                color: '#94A3B8',
                                 font: { size: 9, family: 'Kanit' },
-                                callback: val => val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val
+                                callback: val => '฿' + val.toLocaleString()
                             }
                         }
                     }
@@ -671,6 +585,7 @@
             });
         }
 
+        // 2. Department Share Chart (Department Data)
         function renderGaugeDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
@@ -730,15 +645,8 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#1E2532',
-                            borderColor: '#334155',
-                            borderWidth: 1,
                             callbacks: {
-                                label: function(context) {
-                                    const val = context.raw || 0;
-                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                                    return ` ฿${val.toLocaleString()} (${pct}%)`;
-                                }
+                                label: ctx => ` ฿${ctx.raw.toLocaleString()}`
                             }
                         }
                     }
@@ -746,6 +654,7 @@
             });
         }
 
+        // 3. Top 10 Defect Problems Pareto Analysis
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
@@ -777,7 +686,6 @@
                             backgroundColor: '#EC4899',
                             borderWidth: 2,
                             pointRadius: 3,
-                            pointBackgroundColor: '#EC4899',
                             yAxisID: 'y1',
                             order: 1
                         },
@@ -801,19 +709,13 @@
                     scales: {
                         x: { 
                             grid: { display: false }, 
-                            ticks: { 
-                                color: '#94A3B8', 
-                                font: { size: 9, family: 'Kanit' },
-                                maxRotation: 45,
-                                minRotation: 20
-                            } 
+                            ticks: { color: '#94A3B8', font: { size: 9, family: 'Kanit' }, maxRotation: 45 } 
                         },
                         y: {
                             type: 'linear',
                             position: 'left',
                             grid: { color: '#1E293B' },
-                            ticks: { color: '#94A3B8', font: { size: 9, family: 'Kanit' } },
-                            title: { display: true, text: 'Defect Qty', color: '#94A3B8', font: { size: 9, family: 'Kanit' } }
+                            ticks: { color: '#94A3B8', font: { size: 9, family: 'Kanit' } }
                         },
                         y1: {
                             type: 'linear',
@@ -821,22 +723,25 @@
                             min: 0,
                             max: 100,
                             grid: { drawOnChartArea: false },
-                            ticks: { color: '#EC4899', callback: value => value + '%', font: { size: 9, family: 'Kanit' } },
-                            title: { display: true, text: 'Cumulative %', color: '#EC4899', font: { size: 9, family: 'Kanit' } }
+                            ticks: { color: '#EC4899', callback: value => value + '%', font: { size: 9, family: 'Kanit' } }
                         }
                     }
                 }
             });
         }
 
+        // 4. Recent Data Records (Top 10 Latest Records)
         function renderTable(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
+
             if (rows.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center py-6 text-slate-500">ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>';
                 return;
             }
-            rows.slice(0, 15).forEach(r => {
+
+            // Slice top 10 items
+            rows.slice(0, 10).forEach(r => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition text-[11px]">
                         <td class="py-1.5 px-2 font-semibold text-white whitespace-nowrap">${r.displayDate}</td>
@@ -846,13 +751,12 @@
                         <td class="py-1.5 px-2 text-purple-300 font-medium whitespace-nowrap">${r.dept}</td>
                         <td class="py-1.5 px-2 text-slate-200 truncate max-w-[120px]">${r.prob}</td>
                         <td class="py-1.5 px-2 text-right text-emerald-400 font-bold whitespace-nowrap">${r.qty}</td>
-                        <td class="py-1.5 px-2 text-right text-purple-400 font-bold whitespace-nowrap">฿${r.amt.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="py-1.5 px-2 text-right text-purple-400 font-bold whitespace-nowrap">฿${r.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
         }
 
-        // Auto load on start
         document.addEventListener('DOMContentLoaded', fetchSupabaseData);
     </script>
 </body>
