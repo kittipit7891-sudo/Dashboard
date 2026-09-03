@@ -195,7 +195,7 @@
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
                             <tr>
-                                <td colspan="8" class="text-center py-8 text-slate-500">กำลังโหลดข้อมูลจาก Supabase...</td>
+                                <td colspan="8" class="text-center py-8 text-slate-500">กำลังเชื่อมต่อ Supabase...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -276,17 +276,14 @@
     </div>
 
     <script>
-        // Supabase Configuration
         const SUPABASE_URL = 'https://vxxibyghvdlwuffygqnw.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4eGlieWdodmRsd3VmZnlncW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTIwODYsImV4cCI6MjEwMzk4ODA4Nn0.pMUpGBxCpwUMq88KpMf7SV9rXcrvWVpZ89AGBd2MGYU';
-        let supabase = null;
 
         let rawExcelData = [];
         let dailyChartInstance = null;
         let deptChartInstance = null;
         let problemChartInstance = null;
 
-        // Glowing cursor plugin
         const glowingHighlightPlugin = {
             id: 'glowingHighlight',
             afterDraw: (chart) => {
@@ -299,7 +296,6 @@
                     const bottomY = chart.scales.y.bottom;
 
                     ctx.save();
-                    
                     ctx.beginPath();
                     ctx.moveTo(x, y);
                     ctx.lineTo(x, bottomY);
@@ -321,7 +317,6 @@
                     ctx.fillStyle = '#0B0E14';
                     ctx.shadowBlur = 0;
                     ctx.fill();
-
                     ctx.restore();
                 }
             }
@@ -330,14 +325,12 @@
         function parseExcelDate(val) {
             if (!val) return { iso: '', display: 'N/A' };
 
-            // จัดรูปแบบ YYYY-MM-DD แบบมี 0 นำหน้า เพื่อการกรองและเปรียบเทียบที่ถูกต้อง
-            if (typeof val === 'string' && val.includes('-')) {
-                const cleanDate = val.split('T')[0];
-                const parts = cleanDate.split('-');
-                if (parts.length === 3) {
-                    const yyyy = parts[0];
-                    const mm = String(parts[1]).padStart(2, '0');
-                    const dd = String(parts[2]).padStart(2, '0');
+            if (typeof val === 'string') {
+                const match = val.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+                if (match) {
+                    const yyyy = match[1];
+                    const mm = String(match[2]).padStart(2, '0');
+                    const dd = String(match[3]).padStart(2, '0');
                     return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
                 }
             }
@@ -360,32 +353,48 @@
         }
 
         async function fetchSupabaseData() {
-            try {
-                if (!supabase && window.supabase) {
-                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                }
+            const tableBody = document.getElementById('tableBody');
+            
+            if (!window.supabase) {
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-rose-400 font-semibold">❌ ไม่พบ Supabase Client SDK (กรุณาเช็กการเชื่อมต่ออินเทอร์เน็ต)</td></tr>`;
+                return;
+            }
 
-                const { data, error } = await supabase
+            try {
+                const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                const { data, error } = await client
                     .from('production_scrap')
-                    .select('*')
-                    .order('date', { ascending: false });
+                    .select('*');
 
                 if (error) throw error;
 
+                if (!data || data.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-amber-400 font-semibold">⚠️ เชื่อมต่อ Supabase สำเร็จ แต่ตาราง production_scrap ไม่มีข้อมูล หรือถูกติด RLS Policy</td></tr>`;
+                    return;
+                }
+
                 rawExcelData = data.map(item => {
-                    const parsedDate = parseExcelDate(item.date);
+                    const getProp = (keys) => {
+                        for (let k of keys) {
+                            if (item[k] !== undefined && item[k] !== null) return item[k];
+                        }
+                        return null;
+                    };
+
+                    const rawDate = getProp(['date', 'Date', 'created_at']);
+                    const parsedDate = parseExcelDate(rawDate);
                     
-                    const qty = parseFloat(item.quantity ?? item.qty ?? 0) || 0;
-                    const price = parseFloat(item.price ?? 0) || 0;
+                    const qty = parseFloat(getProp(['quantity', 'qty', 'QTY', 'Quantity'])) || 0;
+                    const price = parseFloat(getProp(['price', 'Price', 'PRICE'])) || 0;
 
                     return {
                         isoDate: parsedDate.iso,
                         displayDate: parsedDate.display,
-                        month: item.month || 'N/A',
-                        model: item.model || 'N/A',
-                        shift: item.shift || 'N/A',
-                        dept: item.department || item.dept || 'N/A',
-                        prob: item.problem || item.prob || 'N/A',
+                        month: getProp(['month', 'Month', 'MONTH']) || 'N/A',
+                        model: getProp(['model', 'Model', 'MODEL']) || 'N/A',
+                        shift: getProp(['shift', 'Shift', 'SHIFT']) || 'N/A',
+                        dept: getProp(['department', 'dept', 'Department', 'Dept']) || 'N/A',
+                        prob: getProp(['problem', 'prob', 'Problem', 'Prob']) || 'N/A',
                         qty: qty,
                         price: price,
                         amt: qty * price
@@ -396,8 +405,8 @@
                 applyFilters();
 
             } catch (err) {
-                console.error('Error fetching data:', err.message);
-                document.getElementById('tableBody').innerHTML = `<tr><td colspan="8" class="text-center py-6 text-rose-400">เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message}</td></tr>`;
+                console.error('Fetch error:', err);
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-rose-400 font-semibold">❌ เกิดข้อผิดพลาดจาก Supabase: ${err.message}</td></tr>`;
             }
         }
 
@@ -474,8 +483,8 @@
             const selMonth = document.getElementById('filterMonth').value;
 
             const filteredData = rawExcelData.filter(r => {
-                const matchStart = !startDate || (r.isoDate >= startDate);
-                const matchEnd = !endDate || (r.isoDate <= endDate);
+                const matchStart = !startDate || !r.isoDate || (r.isoDate >= startDate);
+                const matchEnd = !endDate || !r.isoDate || (r.isoDate <= endDate);
                 const matchModel = (selModel === 'ALL') || (r.model === selModel);
                 const matchShift = (selShift === 'ALL') || (r.shift === selShift);
                 const matchMonth = (selMonth === 'ALL') || (r.month === selMonth);
@@ -516,26 +525,19 @@
             btnSubmit.disabled = true;
             btnSubmit.innerText = 'กำลังบันทึก...';
 
-            const dateVal = document.getElementById('inputDate').value;
-            const monthVal = document.getElementById('inputMonth').value;
-            const modelVal = document.getElementById('inputModel').value;
-            const shiftVal = document.getElementById('inputShift').value;
-            const deptVal = document.getElementById('inputDept').value;
-            const probVal = document.getElementById('inputProb').value;
-            const qtyVal = parseFloat(document.getElementById('inputQty').value) || 0;
-            const priceVal = parseFloat(document.getElementById('inputPrice').value) || 0;
+            const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            const { error } = await supabase
+            const { error } = await client
                 .from('production_scrap')
                 .insert([{
-                    date: dateVal,
-                    month: monthVal,
-                    model: modelVal,
-                    shift: shiftVal,
-                    department: deptVal,
-                    problem: probVal,
-                    quantity: qtyVal,
-                    price: priceVal
+                    date: document.getElementById('inputDate').value,
+                    month: document.getElementById('inputMonth').value,
+                    model: document.getElementById('inputModel').value,
+                    shift: document.getElementById('inputShift').value,
+                    department: document.getElementById('inputDept').value,
+                    problem: document.getElementById('inputProb').value,
+                    quantity: parseFloat(document.getElementById('inputQty').value) || 0,
+                    price: parseFloat(document.getElementById('inputPrice').value) || 0
                 }]);
 
             btnSubmit.disabled = false;
@@ -599,7 +601,6 @@
             renderTable(data);
         }
 
-        // แสดงผลรวมคอลัมน์ Price ในแต่ละวัน (ตามกำหนด)
         function renderGlowingTrendChart(filteredData) {
             const canvas = document.getElementById('dailyChart');
             const ctx = canvas.getContext('2d');
@@ -627,20 +628,18 @@
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: 'Sum of Price',
-                            data: currentValues,
-                            borderColor: '#38BDF8',
-                            borderWidth: 2.5,
-                            tension: 0.45,
-                            fill: true,
-                            backgroundColor: gradientFill,
-                            pointRadius: 0,
-                            pointHoverRadius: 0,
-                            order: 1
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Sum of Price',
+                        data: currentValues,
+                        borderColor: '#38BDF8',
+                        borderWidth: 2.5,
+                        tension: 0.45,
+                        fill: true,
+                        backgroundColor: gradientFill,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        order: 1
+                    }]
                 },
                 plugins: [glowingHighlightPlugin],
                 options: {
@@ -660,13 +659,9 @@
                             cornerRadius: 16,
                             displayColors: false,
                             callbacks: {
-                                title: () => '',
                                 label: function(context) {
-                                    if (context.datasetIndex === 0) {
-                                        let val = context.raw || 0;
-                                        return `↗ ฿${val.toLocaleString()}`;
-                                    }
-                                    return null;
+                                    let val = context.raw || 0;
+                                    return `↗ ฿${val.toLocaleString()}`;
                                 }
                             }
                         }
@@ -689,7 +684,6 @@
             });
         }
 
-        // แสดงข้อมูลจาก Department Index
         function renderGaugeDeptChart(deptMap) {
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChartInstance) deptChartInstance.destroy();
@@ -765,7 +759,6 @@
             });
         }
 
-        // Pareto Analysis Top 10
         function renderProblemParetoChart(probMap) {
             const ctx = document.getElementById('problemChart').getContext('2d');
             if (problemChartInstance) problemChartInstance.destroy();
@@ -849,7 +842,6 @@
             });
         }
 
-        // แสดงตาราง 10 รายการล่าสุด และคอลัมน์ PRICE (฿)
         function renderTable(rows) {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -873,7 +865,7 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', fetchSupabaseData);
+        window.addEventListener('load', fetchSupabaseData);
     </script>
 </body>
 </html>
