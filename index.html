@@ -37,6 +37,11 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2">
+            <!-- ปุ่มลิงก์เชื่อมไปหน้า production-daily.html -->
+            <a href="production-daily.html" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-sky-500/20 flex items-center gap-1.5">
+                📈 Production Daily
+            </a>
+
             <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-emerald-500/20 flex items-center gap-1">
                 ➕ เพิ่มข้อมูลใหม่
             </button>
@@ -630,7 +635,7 @@
                 const maxVal = Math.max(...values);
                 const topPct = ((maxVal / total) * 100).toFixed(1);
                 document.getElementById('deptCenterValue').innerText = `${topPct}%`;
-                document.getElementById('deptCenterLabel').innerText = 'Top Dept Share';
+                document.getElementById('deptCenterLabel').innerText = 'Top Share';
             } else {
                 document.getElementById('deptCenterValue').innerText = '0%';
                 document.getElementById('deptCenterLabel').innerText = 'No Data';
