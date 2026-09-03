@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- SheetJS (XLSX) CDN -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Font (Kanit) -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -37,7 +39,6 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2">
-            <!-- ปุ่มลิงก์เชื่อมไปหน้า production-daily.html -->
             <a href="production-daily.html" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-sky-500/20 flex items-center gap-1.5">
                 📈 Production Daily
             </a>
@@ -126,8 +127,6 @@
 
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            
-            <!-- Glowing Neon Line Chart (Blue-Cyan Tone) -->
             <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-1">
                     <div>
@@ -143,7 +142,6 @@
                 </div>
             </div>
 
-            <!-- Semi-Circle Gauge Chart -->
             <div class="card p-4 flex flex-col justify-between">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-100 mb-0.5">Department Share</h3>
@@ -196,7 +194,7 @@
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-[#262D3D]">
                             <tr>
-                                <td colspan="8" class="text-center py-8 text-slate-500">ยังไม่มีข้อมูล กรุณานำเข้าไฟล์ Excel หรือกดเพิ่มข้อมูลใหม่</td>
+                                <td colspan="8" class="text-center py-8 text-slate-500">กำลังโหลดข้อมูลจาก Supabase...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -270,19 +268,24 @@
 
                 <div class="pt-2 flex justify-end gap-2">
                     <button type="button" onclick="closeAddModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-md text-xs font-semibold">ยกเลิก</button>
-                    <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold">บันทึกข้อมูล</button>
+                    <button type="submit" id="btnSubmit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-semibold">บันทึกข้อมูล</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://vxxibyghvdlwuffygqnw.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4eGlieWdodmRsd3VmZnlncW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTIwODYsImV4cCI6MjEwMzk4ODA4Nn0.pMUpGBxCpwUMq88KpMf7SV9rXcrvWVpZ89AGBd2MGYU';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let rawExcelData = [];
         let dailyChartInstance = null;
         let deptChartInstance = null;
         let problemChartInstance = null;
 
-        // Glowing cursor plugin updated to blue-cyan (#38BDF8)
+        // Glowing cursor plugin
         const glowingHighlightPlugin = {
             id: 'glowingHighlight',
             afterDraw: (chart) => {
@@ -340,6 +343,44 @@
             const dd = String(jsDate.getDate()).padStart(2, '0');
 
             return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
+        }
+
+        // Fetch Data directly from Supabase
+        async function fetchSupabaseData() {
+            try {
+                const { data, error } = await supabase
+                    .from('production_scrap')
+                    .select('*')
+                    .order('date', { ascending: false });
+
+                if (error) throw error;
+
+                rawExcelData = data.map(item => {
+                    const parsedDate = parseExcelDate(item.date);
+                    const qty = parseFloat(item.quantity) || 0;
+                    const price = parseFloat(item.price) || 0;
+
+                    return {
+                        isoDate: item.date || parsedDate.iso,
+                        displayDate: parsedDate.display,
+                        month: item.month || 'Unknown',
+                        model: item.model || 'N/A',
+                        shift: item.shift || 'N/A',
+                        dept: item.department || 'N/A',
+                        prob: item.problem || 'N/A',
+                        qty: qty,
+                        price: price,
+                        amt: qty * price
+                    };
+                });
+
+                setupFilters(rawExcelData);
+                applyFilters();
+
+            } catch (err) {
+                console.error('Error fetching data:', err.message);
+                alert('ไม่สามารถดึงข้อมูลจาก Supabase ได้: ' + err.message);
+            }
         }
 
         function handleFileUpload(event) {
@@ -450,8 +491,14 @@
             document.getElementById('addModal').classList.add('hidden');
         }
 
-        function saveNewRecord(event) {
+        // Save Record to Supabase
+        async function saveNewRecord(event) {
             event.preventDefault();
+
+            const btnSubmit = document.getElementById('btnSubmit');
+            btnSubmit.disabled = true;
+            btnSubmit.innerText = 'กำลังบันทึก...';
+
             const dateVal = document.getElementById('inputDate').value;
             const monthVal = document.getElementById('inputMonth').value;
             const modelVal = document.getElementById('inputModel').value;
@@ -461,26 +508,30 @@
             const qtyVal = parseFloat(document.getElementById('inputQty').value) || 0;
             const priceVal = parseFloat(document.getElementById('inputPrice').value) || 0;
 
-            const parsedDate = parseExcelDate(dateVal);
+            const { error } = await supabase
+                .from('production_scrap')
+                .insert([{
+                    date: dateVal,
+                    month: monthVal,
+                    model: modelVal,
+                    shift: shiftVal,
+                    department: deptVal,
+                    problem: probVal,
+                    quantity: qtyVal,
+                    price: priceVal
+                }]);
 
-            const newRecord = {
-                isoDate: parsedDate.iso,
-                displayDate: parsedDate.display,
-                month: monthVal,
-                model: modelVal,
-                shift: shiftVal,
-                dept: deptVal,
-                prob: probVal,
-                qty: qtyVal,
-                price: priceVal,
-                amt: qtyVal * priceVal
-            };
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = 'บันทึกข้อมูล';
 
-            rawExcelData.unshift(newRecord);
-            setupFilters(rawExcelData);
-            applyFilters();
+            if (error) {
+                alert('เกิดข้อผิดพลาดในการบันทึก: ' + error.message);
+                return;
+            }
+
             closeAddModal();
             document.getElementById('addRecordForm').reset();
+            await fetchSupabaseData();
         }
 
         function exportToExcel() {
@@ -549,7 +600,6 @@
             const labels = sortedDates.map(d => grouped[d].displayDate);
             const currentValues = sortedDates.map(d => grouped[d].amt);
 
-            // Blue-Cyan Gradient fill
             const gradientFill = ctx.createLinearGradient(0, 0, 0, 200);
             gradientFill.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
             gradientFill.addColorStop(0.7, 'rgba(56, 189, 248, 0.04)');
@@ -801,6 +851,9 @@
                 `;
             });
         }
+
+        // Auto load on start
+        document.addEventListener('DOMContentLoaded', fetchSupabaseData);
     </script>
 </body>
 </html>
