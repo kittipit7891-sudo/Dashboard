@@ -328,6 +328,18 @@
 
         function parseExcelDate(val) {
             if (!val) return { iso: '', display: 'N/A' };
+
+            // กรณีเป็น String ข้อความวันที่ ISO จาก Supabase โดยตรง (เช่น "2026-08-03")
+            if (typeof val === 'string' && val.includes('-')) {
+                const cleanDate = val.split('T')[0];
+                const parts = cleanDate.split('-');
+                if (parts.length === 3) {
+                    const [yyyy, mm, dd] = parts;
+                    return { iso: `${yyyy}-${mm}-${dd}`, display: `${dd}/${mm}/${yyyy}` };
+                }
+            }
+
+            // กรณีเป็นตัวเลข Serial Date จาก Excel หรือ Date String ทั่วไป
             let jsDate;
             let num = Number(val);
             if (!isNaN(num) && num > 1000) {
@@ -336,7 +348,7 @@
                 jsDate = new Date(val);
             }
 
-            if (isNaN(jsDate.getTime())) return { iso: '', display: String(val) };
+            if (isNaN(jsDate.getTime())) return { iso: String(val), display: String(val) };
 
             const yyyy = jsDate.getFullYear();
             const mm = String(jsDate.getMonth() + 1).padStart(2, '0');
@@ -357,17 +369,19 @@
 
                 rawExcelData = data.map(item => {
                     const parsedDate = parseExcelDate(item.date);
-                    const qty = parseFloat(item.quantity) || 0;
-                    const price = parseFloat(item.price) || 0;
+                    
+                    // อ่านค่าตรงตามชื่อคอลัมน์จริงในภาพฐานข้อมูล
+                    const qty = parseFloat(item.quantity ?? item.qty ?? 0) || 0;
+                    const price = parseFloat(item.price ?? 0) || 0;
 
                     return {
-                        isoDate: item.date || parsedDate.iso,
+                        isoDate: parsedDate.iso,
                         displayDate: parsedDate.display,
-                        month: item.month || 'Unknown',
+                        month: item.month || 'N/A',
                         model: item.model || 'N/A',
                         shift: item.shift || 'N/A',
-                        dept: item.department || 'N/A',
-                        prob: item.problem || 'N/A',
+                        dept: item.department || item.dept || 'N/A',
+                        prob: item.problem || item.prob || 'N/A',
                         qty: qty,
                         price: price,
                         amt: qty * price
@@ -412,7 +426,7 @@
                         return {
                             isoDate: parsedDate.iso,
                             displayDate: parsedDate.display,
-                            month: getVal(['Month', 'MONTH', 'เดือน']) || 'Unknown',
+                            month: getVal(['Month', 'MONTH', 'เดือน']) || 'N/A',
                             model: getVal(['Model', 'MODEL', 'รุ่น']) || 'N/A',
                             shift: getVal(['Shift', 'SHIFT', 'กะ']) || 'N/A',
                             dept: getVal(['Department', 'Dept', 'DEPT', 'แผนก']) || 'N/A',
@@ -434,8 +448,8 @@
 
         function setupFilters(data) {
             const models = [...new Set(data.map(d => d.model))].filter(m => m !== 'N/A' && m !== '');
-            const shifts = [...new Set(data.map(d => d.shift))];
-            const months = [...new Set(data.map(d => d.month))];
+            const shifts = [...new Set(data.map(d => d.shift))].filter(s => s !== 'N/A' && s !== '');
+            const months = [...new Set(data.map(d => d.month))].filter(m => m !== 'N/A' && m !== '');
             
             document.getElementById('filterModel').innerHTML = '<option value="ALL">ทั้งหมด (All Models)</option>' + models.map(m => `<option value="${m}">${m}</option>`).join('');
             document.getElementById('filterShift').innerHTML = '<option value="ALL">ทั้งหมด (All Shifts)</option>' + shifts.map(s => `<option value="${s}">${s}</option>`).join('');
