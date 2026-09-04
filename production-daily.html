@@ -191,43 +191,43 @@
 
             loading.classList.remove('hidden');
 
+            let currentData = [];
+
             try {
                 // Query ข้อมูลจาก Supabase ตาราง 'daily_production'
                 let query = supabaseClient.from('daily_production').select('*');
 
                 if (dateVal) query = query.eq('date', dateVal);
                 if (lineVal !== 'ALL') query = query.eq('line', lineVal);
-                if (shiftVal !== 'ALL') query = query.eq('shift', shiftVal);
+                if (shiftVal !== 'ALL') query = query.ilike('shift', `%${shiftVal}%`);
 
                 const { data, error } = await query.order('time_slot', { ascending: true });
 
-                if (error) throw error;
-
-                const currentData = data || [];
-                
+                if (!error && data) {
+                    currentData = data;
+                }
+            } catch (err) {
+                console.error('Error loading Supabase data:', err.message);
+            } finally {
+                // ทำการอัปเดต UI และ Target เสมอ ไม่ว่าจะดึงข้อมูลจาก Supabase สำเร็จหรือไม่
                 updateKPIs(currentData);
                 renderHourlyChart(currentData);
                 renderLinePerformance(currentData);
                 renderHourlyTable(currentData);
-
-            } catch (err) {
-                console.error('Error loading Supabase data:', err.message);
-            } finally {
                 loading.classList.add('hidden');
             }
         }
 
-        function updateKPIs(data) {
+        function updateKPIs(data = []) {
             const shiftVal = document.getElementById('filterShift').value;
 
-            // ล็อคยอดเป้าหมาย: เลือกทุกกะ (ALL) = 5,000 Pcs | เลือกระบุกะ (Day/Night) = 1,250 Pcs
+            // ล็อคยอดเป้าหมาย: ALL = 5,000 Pcs | Day/Night = 1,250 Pcs
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
             const totalActual = data.reduce((sum, item) => sum + (Number(item.actual) || 0), 0);
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
-            // คำนวณ % Achievement Rate ตามยอดเป้าหมายที่ล็อคไว้
             const achieveRate = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
 
             document.getElementById('kpiTarget').innerText = `${totalTarget.toLocaleString()} Pcs`;
@@ -242,7 +242,6 @@
             const ctx = document.getElementById('hourlyChart').getContext('2d');
             if (hourlyChartInstance) hourlyChartInstance.destroy();
 
-            // จัดกลุ่มข้อมูลตาม time_slot
             const timeSlotMap = {};
             data.forEach(item => {
                 const slot = item.time_slot || 'N/A';
@@ -297,7 +296,6 @@
             const ctx = document.getElementById('linePerformanceChart').getContext('2d');
             if (linePerformanceInstance) linePerformanceInstance.destroy();
 
-            // คำนวณ Efficiency (%) แยกตาม Line
             const lineMap = {};
             data.forEach(item => {
                 const line = item.line || 'Unknown';
