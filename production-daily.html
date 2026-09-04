@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Font (Kanit) -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -31,13 +33,12 @@
             <h1 class="text-xl font-bold text-white flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> Production Daily Dashboard
             </h1>
-            <p class="text-[11px] text-slate-400">ติดตามยอดการผลิต ประสิทธิภาพรายวัน และ Downtime</p>
+            <p class="text-[11px] text-slate-400">ติดตามยอดการผลิต ประสิทธิภาพรายวัน และ Downtime (Supabase Live Data)</p>
         </div>
         
         <div class="flex flex-wrap items-center gap-2">
-            <!-- ปุ่มสลับไปแดชบอร์ด Scrap Analytics (index.html) -->
             <a href="index.html" class="bg-purple-600/20 hover:bg-purple-600 border border-purple-500/50 text-purple-200 hover:text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md flex items-center gap-1.5">
-                📊 Scrap Analytics (index.html)
+                📊 Scrap Analytics
             </a>
 
             <button onclick="alert('ฟังก์ชั่นเพิ่มข้อมูลกำลังได้รับการอัปเดต')" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-sky-500/20 flex items-center gap-1">
@@ -53,27 +54,29 @@
             
             <div class="flex items-center gap-1.5">
                 <label class="text-[11px] text-slate-400">ประจำวันที่:</label>
-                <input type="date" id="dailyDate" value="2026-09-03" onchange="updateDailyData()" class="px-2.5 py-1 rounded-md text-xs">
+                <input type="date" id="dailyDate" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
             </div>
 
             <div class="flex items-center gap-1.5">
                 <label class="text-[11px] text-slate-400">สายการผลิต (Line):</label>
-                <select id="filterLine" onchange="updateDailyData()" class="px-2.5 py-1 rounded-md text-xs">
+                <select id="filterLine" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทุกสายการผลิต (All Lines)</option>
-                    <option value="Line 1">Line 1 (Main Assembly)</option>
-                    <option value="Line 2">Line 2 (Sub Assembly)</option>
-                    <option value="Line 3">Line 3 (Packaging)</option>
+                    <option value="Line 1">Line 1</option>
+                    <option value="Line 2">Line 2</option>
+                    <option value="Line 3">Line 3</option>
                 </select>
             </div>
 
             <div class="flex items-center gap-1.5">
                 <label class="text-[11px] text-slate-400">กะการทำงาน:</label>
-                <select id="filterShift" onchange="updateDailyData()" class="px-2.5 py-1 rounded-md text-xs">
+                <select id="filterShift" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทุกกะ (All Shifts)</option>
-                    <option value="Day">Day Shift (08:00 - 20:00)</option>
-                    <option value="Night">Night Shift (20:00 - 08:00)</option>
+                    <option value="Day">Day Shift</option>
+                    <option value="Night">Night Shift</option>
                 </select>
             </div>
+
+            <span id="loadingStatus" class="text-xs text-sky-400 ml-auto hidden animate-pulse">⏳ กำลังดึงข้อมูล...</span>
         </div>
     </section>
 
@@ -84,35 +87,33 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="card p-4 border-l-4 border-l-slate-400">
                 <p class="text-[11px] text-slate-400 font-medium">Target Output (เป้าหมาย)</p>
-                <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">5,000 Pcs</h3>
+                <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">0 Pcs</h3>
                 <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block">● Daily Production Plan</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-sky-400">
                 <p class="text-[11px] text-slate-400 font-medium">Actual Output (ผลิตได้จริง)</p>
-                <h3 class="text-2xl font-bold text-sky-400 mt-0.5" id="kpiActual">4,680 Pcs</h3>
+                <h3 class="text-2xl font-bold text-sky-400 mt-0.5" id="kpiActual">0 Pcs</h3>
                 <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● Completed Units</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-emerald-400">
                 <p class="text-[11px] text-slate-400 font-medium">Achievement Rate (อัตราสำเร็จ)</p>
-                <h3 class="text-2xl font-bold text-emerald-400 mt-0.5" id="kpiAchievement">93.6%</h3>
+                <h3 class="text-2xl font-bold text-emerald-400 mt-0.5" id="kpiAchievement">0.0%</h3>
                 <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                    <div class="bg-emerald-400 h-full rounded-full" style="width: 93.6%"></div>
+                    <div id="kpiProgressBar" class="bg-emerald-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
                 </div>
             </div>
 
             <div class="card p-4 border-l-4 border-l-rose-400">
                 <p class="text-[11px] text-slate-400 font-medium">Downtime Total (เวลาเครื่องหยุด)</p>
-                <h3 class="text-2xl font-bold text-rose-400 mt-0.5" id="kpiDowntime">45 Mins</h3>
-                <span class="text-[10px] text-rose-300 font-semibold mt-1 inline-block">● 3 Incidents Logged</span>
+                <h3 class="text-2xl font-bold text-rose-400 mt-0.5" id="kpiDowntime">0 Mins</h3>
+                <span class="text-[10px] text-rose-300 font-semibold mt-1 inline-block" id="kpiIncidents">● 0 Incidents Logged</span>
             </div>
         </div>
 
         <!-- Charts Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            
-            <!-- Hourly Production Output Trend (2 Columns) -->
             <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <div>
@@ -129,7 +130,6 @@
                 </div>
             </div>
 
-            <!-- Line Efficiency Summary -->
             <div class="card p-4 flex flex-col justify-between">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-100 mb-0.5">Line Performance (% OEE / Plan)</h3>
@@ -145,7 +145,7 @@
         <div class="card p-4">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-sm font-semibold text-slate-200">⏱️ Hourly Production & Downtime Log</h3>
-                <span class="text-[11px] text-sky-400">Real-time Hourly Updates</span>
+                <span class="text-[11px] text-sky-400">Real-time Supabase Data</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-[11px] text-slate-300">
@@ -171,34 +171,85 @@
     </main>
 
     <script>
+        // Supabase Credentials
+        const SUPABASE_URL = 'https://vxxibyghvdlwuffygqnw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ4eGlieWdodmRsd3VmZnlncW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTIwODYsImV4cCI6MjEwMzk4ODA4Nn0.pMUpGBxCpwUMq88KpMf7SV9rXcrvWVpZ89AGBd2MGYU';
+        
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
-        // Sample Mock Data for Daily Production
-        const mockHourlyData = [
-            { time: '08:00 - 09:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 480, downtime: 0, remark: 'Normal operation' },
-            { time: '09:00 - 10:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 510, downtime: 0, remark: 'Exceeded target' },
-            { time: '10:00 - 11:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 420, downtime: 15, remark: 'Material delay' },
-            { time: '11:00 - 12:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 490, downtime: 0, remark: 'Normal' },
-            { time: '13:00 - 14:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 460, downtime: 10, remark: 'Minor adjustment' },
-            { time: '14:00 - 15:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 500, downtime: 0, remark: 'On target' },
-            { time: '15:00 - 16:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 380, downtime: 20, remark: 'Sensor fault' },
-            { time: '16:00 - 17:00', line: 'Line 1', model: 'MD-A10', target: 500, actual: 440, downtime: 0, remark: 'Recovered' },
-        ];
+        // ตั้งค่า วันที่เริ่มต้นให้เป็น วันปัจจุบัน
+        document.getElementById('dailyDate').value = new Date().toISOString().split('T')[0];
 
-        function initDashboard() {
-            renderHourlyChart();
-            renderLinePerformance();
-            renderHourlyTable();
+        async function fetchAndRenderData() {
+            const dateVal = document.getElementById('dailyDate').value;
+            const lineVal = document.getElementById('filterLine').value;
+            const shiftVal = document.getElementById('filterShift').value;
+            const loading = document.getElementById('loadingStatus');
+
+            loading.classList.remove('hidden');
+
+            try {
+                // Query ข้อมูลจาก Supabase ตาราง 'daily_production'
+                let query = supabaseClient.from('daily_production').select('*');
+
+                if (dateVal) query = query.eq('date', dateVal);
+                if (lineVal !== 'ALL') query = query.eq('line', lineVal);
+                if (shiftVal !== 'ALL') query = query.eq('shift', shiftVal);
+
+                const { data, error } = await query.order('time_slot', { ascending: true });
+
+                if (error) throw error;
+
+                const currentData = data || [];
+                
+                updateKPIs(currentData);
+                renderHourlyChart(currentData);
+                renderLinePerformance(currentData);
+                renderHourlyTable(currentData);
+
+            } catch (err) {
+                console.error('Error loading Supabase data:', err.message);
+            } finally {
+                loading.classList.add('hidden');
+            }
         }
 
-        function renderHourlyChart() {
+        function updateKPIs(data) {
+            const totalTarget = data.reduce((sum, item) => sum + (Number(item.target) || 0), 0);
+            const totalActual = data.reduce((sum, item) => sum + (Number(item.actual) || 0), 0);
+            const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
+            const incidents = data.filter(item => Number(item.downtime) > 0).length;
+            const achieveRate = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
+
+            document.getElementById('kpiTarget').innerText = `${totalTarget.toLocaleString()} Pcs`;
+            document.getElementById('kpiActual').innerText = `${totalActual.toLocaleString()} Pcs`;
+            document.getElementById('kpiAchievement').innerText = `${achieveRate}%`;
+            document.getElementById('kpiDowntime').innerText = `${totalDowntime.toLocaleString()} Mins`;
+            document.getElementById('kpiIncidents').innerText = `● ${incidents} Incidents Logged`;
+            document.getElementById('kpiProgressBar').style.width = `${Math.min(achieveRate, 100)}%`;
+        }
+
+        function renderHourlyChart(data) {
             const ctx = document.getElementById('hourlyChart').getContext('2d');
             if (hourlyChartInstance) hourlyChartInstance.destroy();
 
-            const labels = mockHourlyData.map(d => d.time);
-            const actuals = mockHourlyData.map(d => d.actual);
-            const targets = mockHourlyData.map(d => d.target);
+            // จัดกลุ่มข้อมูลตาม time_slot
+            const timeSlotMap = {};
+            data.forEach(item => {
+                const slot = item.time_slot || 'N/A';
+                if (!timeSlotMap[slot]) {
+                    timeSlotMap[slot] = { target: 0, actual: 0 };
+                }
+                timeSlotMap[slot].target += Number(item.target) || 0;
+                timeSlotMap[slot].actual += Number(item.actual) || 0;
+            });
+
+            const labels = Object.keys(timeSlotMap);
+            const targets = labels.map(l => timeSlotMap[l].target);
+            const actuals = labels.map(l => timeSlotMap[l].actual);
 
             hourlyChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -213,7 +264,6 @@
                             borderWidth: 2,
                             borderDash: [4, 4],
                             pointRadius: 3,
-                            pointBackgroundColor: '#F59E0B',
                             fill: false
                         },
                         {
@@ -228,35 +278,43 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        x: {
-                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
-                            ticks: { color: '#64748B', font: { size: 9, family: 'Kanit' } }
-                        },
-                        y: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#64748B', font: { size: 9, family: 'Kanit' } }
-                        }
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#64748B', font: { family: 'Kanit' } } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748B', font: { family: 'Kanit' } } }
                     }
                 }
             });
         }
 
-        function renderLinePerformance() {
+        function renderLinePerformance(data) {
             const ctx = document.getElementById('linePerformanceChart').getContext('2d');
             if (linePerformanceInstance) linePerformanceInstance.destroy();
+
+            // คำนวณ Efficiency (%) แยกตาม Line
+            const lineMap = {};
+            data.forEach(item => {
+                const line = item.line || 'Unknown';
+                if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
+                lineMap[line].target += Number(item.target) || 0;
+                lineMap[line].actual += Number(item.actual) || 0;
+            });
+
+            const lines = Object.keys(lineMap);
+            const effRates = lines.map(line => {
+                const t = lineMap[line].target;
+                const a = lineMap[line].actual;
+                return t > 0 ? ((a / t) * 100).toFixed(1) : 0;
+            });
 
             linePerformanceInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Line 1', 'Line 2', 'Line 3'],
+                    labels: lines.length ? lines : ['No Data'],
                     datasets: [{
                         label: 'Efficiency %',
-                        data: [93.6, 96.2, 88.5],
-                        backgroundColor: ['#38BDF8', '#10B981', '#F43F5E'],
+                        data: effRates.length ? effRates : [0],
+                        backgroundColor: ['#38BDF8', '#10B981', '#F43F5E', '#A855F7'],
                         borderRadius: 6
                     }]
                 },
@@ -264,55 +322,47 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        x: {
-                            max: 100,
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: '#64748B', font: { size: 9, family: 'Kanit' }, callback: v => v + '%' }
-                        },
-                        y: {
-                            grid: { display: false },
-                            ticks: { color: '#E2E8F0', font: { size: 10, family: 'Kanit' } }
-                        }
+                        x: { max: 100, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748B', callback: v => v + '%' } },
+                        y: { grid: { display: false }, ticks: { color: '#E2E8F0' } }
                     }
                 }
             });
         }
 
-        function renderHourlyTable() {
+        function renderHourlyTable(data) {
             const tbody = document.getElementById('hourlyTableBody');
             tbody.innerHTML = '';
 
-            mockHourlyData.forEach(r => {
-                const gap = r.actual - r.target;
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+                return;
+            }
+
+            data.forEach(r => {
+                const target = Number(r.target) || 0;
+                const actual = Number(r.actual) || 0;
+                const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
                 
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
-                        <td class="py-2 px-3 font-semibold text-white whitespace-nowrap">${r.time}</td>
-                        <td class="py-2 px-3 text-slate-300">${r.line}</td>
-                        <td class="py-2 px-3 text-amber-400 font-medium">${r.model}</td>
-                        <td class="py-2 px-3 text-right font-medium">${r.target.toLocaleString()}</td>
-                        <td class="py-2 px-3 text-right font-bold text-sky-400">${r.actual.toLocaleString()}</td>
+                        <td class="py-2 px-3 font-semibold text-white whitespace-nowrap">${r.time_slot || '-'}</td>
+                        <td class="py-2 px-3 text-slate-300">${r.line || '-'}</td>
+                        <td class="py-2 px-3 text-amber-400 font-medium">${r.model || '-'}</td>
+                        <td class="py-2 px-3 text-right font-medium">${target.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right font-bold text-sky-400">${actual.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold ${gapClass}">${gapText}</td>
-                        <td class="py-2 px-3 text-right ${r.downtime > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${r.downtime} min</td>
-                        <td class="py-2 px-3 text-slate-400 truncate max-w-[180px]">${r.remark}</td>
+                        <td class="py-2 px-3 text-right ${r.downtime > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${r.downtime || 0} min</td>
+                        <td class="py-2 px-3 text-slate-400 truncate max-w-[180px]">${r.remark || '-'}</td>
                     </tr>
                 `;
             });
         }
 
-        function updateDailyData() {
-            // ฟังก์ชั่นสำหรับเปลี่ยนวันที่หรือตัวกรองในอนาคต
-            initDashboard();
-        }
-
-        // Initialize on load
-        window.onload = initDashboard;
+        window.onload = fetchAndRenderData;
     </script>
 </body>
 </html>
