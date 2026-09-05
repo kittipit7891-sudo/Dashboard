@@ -179,6 +179,7 @@
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
+        // กำหนดวันที่เริ่มต้น
         document.getElementById('dailyDate').value = new Date().toISOString().split('T')[0];
 
         async function fetchAndRenderData() {
@@ -193,20 +194,25 @@
             try {
                 let query = supabaseClient.from('daily_production').select('*');
 
-                if (dateVal) query = query.eq('date', dateVal);
+                // ค้นหาวันที่แบบยืดหยุ่น รองรับทั้ง Date String และ Timestamp
+                if (dateVal) {
+                    query = query.or(`date.eq.${dateVal},date.ilike.%${dateVal}%`);
+                }
+
                 if (lineVal !== 'ALL') query = query.eq('line', lineVal);
                 if (shiftVal !== 'ALL') query = query.ilike('shift', `%${shiftVal}%`);
 
-                const { data, error } = await query.order('time_slot', { ascending: true });
+                const { data, error } = await query;
 
                 if (error) {
-                    console.error('Supabase Query Error:', error.message);
+                    console.error('❌ Supabase Query Error:', error.message);
+                    alert(`ข้อผิดพลาดจาก Supabase: ${error.message}\nโปรดตรวจสอบสิทธิ์ RLS ของตาราง daily_production`);
                 } else if (data) {
-                    console.log('Fetched Data:', data);
+                    console.log(`✅ พบข้อมูลทั้งหมด ${data.length} รายการ:`, data);
                     currentData = data;
                 }
             } catch (err) {
-                console.error('Exception Error:', err.message);
+                console.error('❌ Exception Error:', err.message);
             } finally {
                 updateKPIs(currentData);
                 renderHourlyChart(currentData);
@@ -220,7 +226,12 @@
             const shiftVal = document.getElementById('filterShift').value;
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
-            const totalActual = data.reduce((sum, item) => sum + (Number(item.qty ?? item.actual) || 0), 0);
+            // คำนวณผลรวมโดยดึงคอลัมน์ qty เป็นหลัก
+            const totalActual = data.reduce((sum, item) => {
+                const qtyVal = item.qty !== undefined && item.qty !== null ? item.qty : item.actual;
+                return sum + (Number(qtyVal) || 0);
+            }, 0);
+
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
@@ -244,8 +255,9 @@
                 if (!timeSlotMap[slot]) {
                     timeSlotMap[slot] = { target: 0, actual: 0 };
                 }
+                const qtyVal = item.qty !== undefined && item.qty !== null ? item.qty : item.actual;
                 timeSlotMap[slot].target += Number(item.target) || 0;
-                timeSlotMap[slot].actual += Number(item.qty ?? item.actual) || 0;
+                timeSlotMap[slot].actual += Number(qtyVal) || 0;
             });
 
             const labels = Object.keys(timeSlotMap);
@@ -296,8 +308,9 @@
             data.forEach(item => {
                 const line = item.line || 'Unknown';
                 if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
+                const qtyVal = item.qty !== undefined && item.qty !== null ? item.qty : item.actual;
                 lineMap[line].target += Number(item.target) || 0;
-                lineMap[line].actual += Number(item.qty ?? item.actual) || 0;
+                lineMap[line].actual += Number(qtyVal) || 0;
             });
 
             const lines = Object.keys(lineMap);
@@ -336,13 +349,13 @@
             tbody.innerHTML = '';
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก (ลองเลือกเปลี่ยนวันที่ในตัวกรอง)</td></tr>`;
                 return;
             }
 
             data.forEach(r => {
                 const target = Number(r.target) || 0;
-                const actual = Number(r.qty ?? r.actual) || 0;
+                const actual = Number(r.qty !== undefined && r.qty !== null ? r.qty : r.actual) || 0;
                 const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
