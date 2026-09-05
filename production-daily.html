@@ -179,7 +179,6 @@
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
-        // กำหนดวันที่เริ่มต้น
         document.getElementById('dailyDate').value = new Date().toISOString().split('T')[0];
 
         async function fetchAndRenderData() {
@@ -194,7 +193,6 @@
             try {
                 let query = supabaseClient.from('daily_production').select('*');
 
-                // ค้นหาวันที่แบบยืดหยุ่น รองรับทั้ง Date String และ Timestamp
                 if (dateVal) {
                     query = query.or(`date.eq.${dateVal},date.ilike.%${dateVal}%`);
                 }
@@ -206,9 +204,8 @@
 
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
-                    alert(`ข้อผิดพลาดจาก Supabase: ${error.message}\nโปรดตรวจสอบสิทธิ์ RLS ของตาราง daily_production`);
                 } else if (data) {
-                    console.log(`✅ พบข้อมูลทั้งหมด ${data.length} รายการ:`, data);
+                    console.log(`✅ ดึงข้อมูลสำเร็จ ${data.length} รายการ:`, data);
                     currentData = data;
                 }
             } catch (err) {
@@ -226,7 +223,6 @@
             const shiftVal = document.getElementById('filterShift').value;
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
-            // คำนวณผลรวมโดยดึงคอลัมน์ qty เป็นหลัก
             const totalActual = data.reduce((sum, item) => {
                 const qtyVal = item.qty !== undefined && item.qty !== null ? item.qty : item.actual;
                 return sum + (Number(qtyVal) || 0);
@@ -349,7 +345,7 @@
             tbody.innerHTML = '';
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก (ลองเลือกเปลี่ยนวันที่ในตัวกรอง)</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก (ลองปรับเปลี่ยนวันที่)</td></tr>`;
                 return;
             }
 
@@ -360,11 +356,14 @@
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
                 
+                // ดึงข้อมูลชื่อ Model จากคอลัมน์ product_sku (หากไม่มีจะสำรองด้วย model)
+                const modelName = r.product_sku || r.model || '-';
+
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
                         <td class="py-2 px-3 font-semibold text-white whitespace-nowrap">${r.time_slot || '-'}</td>
                         <td class="py-2 px-3 text-slate-300">${r.line || '-'}</td>
-                        <td class="py-2 px-3 text-amber-400 font-medium">${r.model || '-'}</td>
+                        <td class="py-2 px-3 text-amber-400 font-medium">${modelName}</td>
                         <td class="py-2 px-3 text-right font-medium">${target.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold text-sky-400">${actual.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold ${gapClass}">${gapText}</td>
