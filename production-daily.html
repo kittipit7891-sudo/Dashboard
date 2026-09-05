@@ -179,8 +179,8 @@
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
-        // กำหนดวันที่เริ่มต้น
-        document.getElementById('dailyDate').value = '2026-09-04';
+        // กำหนดวันที่เริ่มต้นเป็น 2026-09-01
+        document.getElementById('dailyDate').value = '2026-09-01';
 
         async function fetchAndRenderData() {
             const dateVal = document.getElementById('dailyDate').value;
@@ -211,8 +211,20 @@
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
-                    console.log(`✅ พบข้อมูลทั้งหมด ${data.length} รายการ:`, data);
-                    currentData = data;
+                    // 🛡️ ป้องกันข้อมูลซ้ำ: กรองแถวที่มีข้อมูลเหมือนกันทุกประการออก ให้เหลือเพียง 1 รายการ
+                    const uniqueData = data.filter((item, index, self) =>
+                        index === self.findIndex((t) => (
+                            t.date === item.date &&
+                            t.shift === item.shift &&
+                            t.line === item.line &&
+                            t.workstation === item.workstation &&
+                            t.product_cc === item.product_cc &&
+                            Number(t.qualified) === Number(item.qualified)
+                        ))
+                    );
+
+                    console.log(`✅ ข้อมูลจาก DB: ${data.length} แถว | กรองข้อมูลซ้ำเหลือ: ${uniqueData.length} แถว`, uniqueData);
+                    currentData = uniqueData;
                 }
             } catch (err) {
                 console.error('❌ Exception Error:', err.message);
@@ -225,7 +237,7 @@
             }
         }
 
-        // ฟังก์ชันดึงค่าวัดผลผลิตจริงจากคอลัมน์ qualified (รองรับการ fallback ไปยังชื่อคอลัมน์อื่น)
+        // ฟังก์ชันดึงค่าวัดผลผลิตจริงจากคอลัมน์ qualified
         function getItemQualified(item) {
             if (item.qualified !== undefined && item.qualified !== null) return Number(item.qualified) || 0;
             if (item.qty !== undefined && item.qty !== null) return Number(item.qty) || 0;
@@ -237,7 +249,7 @@
             const shiftVal = document.getElementById('filterShift').value;
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
-            // ผลรวมคอลัมน์ qualified ทั้งหมดของวันที่เลือก
+            // รวมยอด qualified เฉพาะแถวที่ไม่ซ้ำ
             const totalActual = data.reduce((sum, item) => sum + getItemQualified(item), 0);
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
