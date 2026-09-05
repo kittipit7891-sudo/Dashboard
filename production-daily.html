@@ -83,19 +83,21 @@
 
         <!-- 4 KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <!-- ปรับหัวข้อการ์ดเป็น Target และตั้งเป้าหมายแบบไดนามิก 2,500 / 1,250 Pcs -->
+            <!-- 1. Target Card -->
             <div class="card p-4 border-l-4 border-l-slate-400">
                 <p class="text-[11px] text-slate-400 font-medium">Target</p>
                 <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">2,500 Pcs</h3>
                 <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block" id="kpiTargetSubtext">● Target Plan รายวัน</span>
             </div>
 
+            <!-- 2. Actual Output Card -->
             <div class="card p-4 border-l-4 border-l-sky-400">
                 <p class="text-[11px] text-slate-400 font-medium">Actual Output (คอลัมน์ qualified)</p>
                 <h3 class="text-2xl font-bold text-sky-400 mt-0.5" id="kpiActual">0 Pcs</h3>
                 <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● ผลรวม qualified จาก Supabase</span>
             </div>
 
+            <!-- 3. Achievement Rate Card -->
             <div class="card p-4 border-l-4 border-l-emerald-400">
                 <p class="text-[11px] text-slate-400 font-medium">Achievement Rate (อัตราสำเร็จ)</p>
                 <h3 class="text-2xl font-bold text-emerald-400 mt-0.5" id="kpiAchievement">0.0%</h3>
@@ -104,6 +106,7 @@
                 </div>
             </div>
 
+            <!-- 4. Downtime Card -->
             <div class="card p-4 border-l-4 border-l-rose-400">
                 <p class="text-[11px] text-slate-400 font-medium">Downtime Total (เวลาเครื่องหยุด)</p>
                 <h3 class="text-2xl font-bold text-rose-400 mt-0.5" id="kpiDowntime">0 Mins</h3>
@@ -179,8 +182,10 @@
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
+        // กำหนดวันที่เริ่มต้น
         document.getElementById('dailyDate').value = '2026-09-01';
 
+        // 1. โหลดตัวเลือก Shift จาก Supabase ตามวันที่เลือก
         async function loadShiftOptions() {
             const dateVal = document.getElementById('dailyDate').value;
             const shiftSelect = document.getElementById('filterShift');
@@ -214,6 +219,7 @@
             await fetchAndRenderData();
         }
 
+        // 2. ดึงข้อมูลจาก Supabase ตาม date, shift, line
         async function fetchAndRenderData() {
             const dateVal = document.getElementById('dailyDate').value;
             const shiftVal = document.getElementById('filterShift').value;
@@ -224,7 +230,8 @@
             let currentData = [];
 
             try {
-                let query = supabaseClient.from('daily_production').select('*');
+                // เพิ่ม range(0, 9999) ป้องกันการโดนจำกัด 1000 แถวจาก Supabase
+                let query = supabaseClient.from('daily_production').select('*').range(0, 9999);
 
                 if (dateVal) {
                     query = query.eq('date', dateVal);
@@ -243,6 +250,7 @@
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
+                    console.log(`✅ ดึงข้อมูลสำเร็จ (${data.length} แถว):`, data);
                     currentData = data;
                 }
             } catch (err) {
@@ -256,19 +264,28 @@
             }
         }
 
-        // ล็อกเป้าหมาย Target เป็น 2,500 (กรณีเลือกทุกกะ) และ 1,250 (เมื่อเลือกเฉพาะกะ)
+        // 3. คำนวณ KPI และล็อกค่า Target (2500 / 1250 Pcs)
         function updateKPIs(data = []) {
             const shiftVal = document.getElementById('filterShift').value;
             
-            // กำหนดเป้าหมาย Target ล็อกค่าตามกะการทำงาน
+            // ล็อก Target: ทุกกะ = 2,500 Pcs / ระบุกะ = 1,250 Pcs
             const totalTarget = (shiftVal === 'ALL') ? 2500 : 1250;
 
-            const totalQualified = data.reduce((sum, item) => sum + (Number(item.qualified) || 0), 0);
-            const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
-            const incidents = data.filter(item => Number(item.downtime) > 0).length;
+            // รวมค่า qualified และ downtime อย่างปลอดภัย
+            const totalQualified = data.reduce((sum, item) => {
+                const val = parseFloat(item.qualified);
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
 
+            const totalDowntime = data.reduce((sum, item) => {
+                const val = parseFloat(item.downtime);
+                return sum + (isNaN(val) ? 0 : val);
+            }, 0);
+
+            const incidents = data.filter(item => parseFloat(item.downtime) > 0).length;
             const achieveRate = totalTarget > 0 ? ((totalQualified / totalTarget) * 100).toFixed(1) : '0.0';
 
+            // แสดงผลลงการ์ด
             document.getElementById('kpiTarget').innerText = `${totalTarget.toLocaleString()} Pcs`;
             document.getElementById('kpiTargetSubtext').innerText = shiftVal === 'ALL' 
                 ? '● Target Plan รวมรายวัน (2,500 Pcs)' 
@@ -281,6 +298,7 @@
             document.getElementById('kpiProgressBar').style.width = `${Math.min(achieveRate, 100)}%`;
         }
 
+        // 4. แสดงกราฟ Trend รายช่วงเวลา/กะ
         function renderHourlyChart(data) {
             const ctx = document.getElementById('hourlyChart').getContext('2d');
             if (hourlyChartInstance) hourlyChartInstance.destroy();
@@ -291,8 +309,8 @@
                 if (!timeSlotMap[slot]) {
                     timeSlotMap[slot] = { target: 0, qualified: 0 };
                 }
-                timeSlotMap[slot].target += Number(item.target) || 0;
-                timeSlotMap[slot].qualified += Number(item.qualified) || 0;
+                timeSlotMap[slot].target += parseFloat(item.target) || 0;
+                timeSlotMap[slot].qualified += parseFloat(item.qualified) || 0;
             });
 
             const labels = Object.keys(timeSlotMap);
@@ -335,6 +353,7 @@
             });
         }
 
+        // 5. แสดงกราฟ ประสิทธิภาพราย Line
         function renderLinePerformance(data) {
             const ctx = document.getElementById('linePerformanceChart').getContext('2d');
             if (linePerformanceInstance) linePerformanceInstance.destroy();
@@ -346,7 +365,7 @@
             data.forEach(item => {
                 const line = item.line || 'Unknown';
                 if (!lineMap[line]) lineMap[line] = { qualified: 0 };
-                lineMap[line].qualified += Number(item.qualified) || 0;
+                lineMap[line].qualified += parseFloat(item.qualified) || 0;
             });
 
             const lines = Object.keys(lineMap);
@@ -379,6 +398,7 @@
             });
         }
 
+        // 6. แสดงตารางรายการผลิตรายวัน
         function renderHourlyTable(data) {
             const tbody = document.getElementById('hourlyTableBody');
             tbody.innerHTML = '';
@@ -389,13 +409,14 @@
             }
 
             data.forEach(r => {
-                const target = Number(r.target) || 0;
-                const qualified = Number(r.qualified) || 0;
+                const target = parseFloat(r.target) || 0;
+                const qualified = parseFloat(r.qualified) || 0;
+                const downtime = parseFloat(r.downtime) || 0;
                 const gap = qualified - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
                 
-                const modelName = r.product_cc || r.product_sku || r.product_code || r.model || '-';
+                const modelName = r.product_code || r.model || r.product_sku || '-';
                 const shiftName = r.shift || '-';
                 const workstation = r.workstation || r.remark || '-';
 
@@ -409,7 +430,7 @@
                         <td class="py-2 px-3 text-right font-medium text-slate-300">${target.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold text-sky-400">${qualified.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold ${gapClass}">${gapText}</td>
-                        <td class="py-2 px-3 text-right ${r.downtime > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${r.downtime || 0} min</td>
+                        <td class="py-2 px-3 text-right ${downtime > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${downtime} min</td>
                     </tr>
                 `;
             });
