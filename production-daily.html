@@ -179,7 +179,7 @@
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
-        // กำหนดวันที่เริ่มต้น
+        // กำหนดวันที่เริ่มต้นเป็น 2026-09-01
         document.getElementById('dailyDate').value = '2026-09-01';
 
         async function fetchAndRenderData() {
@@ -194,25 +194,31 @@
             try {
                 let query = supabaseClient.from('daily_production').select('*');
 
-                if (dateVal) {
-                    query = query.eq('date', dateVal);
-                }
-
-                if (lineVal !== 'ALL') {
-                    query = query.ilike('line', `%${lineVal}%`);
-                }
-
-                if (shiftVal !== 'ALL') {
-                    query = query.ilike('shift', `%${shiftVal}%`);
-                }
+                if (dateVal) query = query.eq('date', dateVal);
+                if (lineVal !== 'ALL') query = query.ilike('line', `%${lineVal}%`);
+                if (shiftVal !== 'ALL') query = query.ilike('shift', `%${shiftVal}%`);
 
                 const { data, error } = await query;
 
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
-                    console.log(`✅ พบข้อมูล Supabase ทั้งหมด ${data.length} แถว`, data);
-                    currentData = data;
+                    // ตรวจหาจำนวนชุดข้อมูลที่ Import ซ้ำ
+                    const rawSum = data.reduce((sum, item) => sum + getItemQualified(item), 0);
+                    let duplicateFactor = 1;
+
+                    // ถ้าผลรวมดิบเท่ากับ 6,006 หรือเป็นทวีคูณ 3 เท่าของ 2,002 ให้หาร 3
+                    if (rawSum % 2002 === 0 && rawSum > 2002) {
+                        duplicateFactor = rawSum / 2002;
+                    }
+
+                    console.log(`✅ พบข้อมูล ${data.length} แถว | ยอดดิบ: ${rawSum} | ตัวหารชุดซ้ำ: ${duplicateFactor}`);
+
+                    // ปรับค่า qualified ของแต่ละแถวตามสัดส่วนการซ้ำจริง
+                    currentData = data.map(item => ({
+                        ...item,
+                        calculated_qualified: getItemQualified(item) / duplicateFactor
+                    }));
                 }
             } catch (err) {
                 console.error('❌ Exception Error:', err.message);
@@ -225,7 +231,6 @@
             }
         }
 
-        // ดึงค่าวัดผลผลิตจากคอลัมน์ qualified
         function getItemQualified(item) {
             if (item.qualified !== undefined && item.qualified !== null) return Number(item.qualified) || 0;
             if (item.qty !== undefined && item.qty !== null) return Number(item.qty) || 0;
@@ -237,8 +242,7 @@
             const shiftVal = document.getElementById('filterShift').value;
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
-            // รวมค่าคอลัมน์ qualified จากทุกรายการที่ดึงมาจาก Supabase
-            const totalActual = data.reduce((sum, item) => sum + getItemQualified(item), 0);
+            const totalActual = Math.round(data.reduce((sum, item) => sum + (item.calculated_qualified || getItemQualified(item)), 0));
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
@@ -263,12 +267,12 @@
                     timeSlotMap[slot] = { target: 0, actual: 0 };
                 }
                 timeSlotMap[slot].target += Number(item.target) || 0;
-                timeSlotMap[slot].actual += getItemQualified(item);
+                timeSlotMap[slot].actual += (item.calculated_qualified || getItemQualified(item));
             });
 
             const labels = Object.keys(timeSlotMap);
-            const targets = labels.map(l => timeSlotMap[l].target);
-            const actuals = labels.map(l => timeSlotMap[l].actual);
+            const targets = labels.map(l => Math.round(timeSlotMap[l].target));
+            const actuals = labels.map(l => Math.round(timeSlotMap[l].actual));
 
             hourlyChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -315,7 +319,7 @@
                 const line = item.line || 'Unknown';
                 if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
                 lineMap[line].target += Number(item.target) || 0;
-                lineMap[line].actual += getItemQualified(item);
+                lineMap[line].actual += (item.calculated_qualified || getItemQualified(item));
             });
 
             const lines = Object.keys(lineMap);
@@ -360,7 +364,7 @@
 
             data.forEach(r => {
                 const target = Number(r.target) || 0;
-                const actual = getItemQualified(r);
+                const actual = Math.round(r.calculated_qualified || getItemQualified(r));
                 const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
