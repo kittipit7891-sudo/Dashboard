@@ -194,7 +194,10 @@
                 let query = supabaseClient.from('daily_production').select('*');
 
                 if (dateVal) {
-                    query = query.or(`date.eq.${dateVal},date.ilike.%${dateVal}%`);
+                    // ดึงข้อมูลแบบคลุมช่วงตั้งแต่ 00:00:00 ถึง 23:59:59 เพื่อแก้ปัญหา Timestamp
+                    const startOfDay = `${dateVal}T00:00:00`;
+                    const endOfDay = `${dateVal}T23:59:59`;
+                    query = query.or(`date.eq.${dateVal},and(date.gte.${startOfDay},date.lte.${endOfDay})`);
                 }
 
                 if (lineVal !== 'ALL') query = query.eq('line', lineVal);
@@ -205,7 +208,7 @@
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
-                    console.log(`✅ ดึงข้อมูลสำเร็จ ${data.length} รายการ:`, data);
+                    console.log(`✅ พบข้อมูลทั้งหมด ${data.length} รายการ:`, data);
                     currentData = data;
                 }
             } catch (err) {
@@ -355,8 +358,6 @@
                 const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
-                
-                // ดึงข้อมูลชื่อ Model จากคอลัมน์ product_sku (หากไม่มีจะสำรองด้วย model)
                 const modelName = r.product_sku || r.model || '-';
 
                 tbody.innerHTML += `
