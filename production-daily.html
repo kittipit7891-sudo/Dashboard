@@ -94,7 +94,7 @@
             <div class="card p-4 border-l-4 border-l-sky-400">
                 <p class="text-[11px] text-slate-400 font-medium">Actual Output (ผลิตได้จริง)</p>
                 <h3 class="text-2xl font-bold text-sky-400 mt-0.5" id="kpiActual">0 Pcs</h3>
-                <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● Completed Units</span>
+                <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● Completed Units (Column: qty)</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-emerald-400">
@@ -155,7 +155,7 @@
                             <th class="py-2.5 px-3">LINE</th>
                             <th class="py-2.5 px-3">MODEL</th>
                             <th class="py-2.5 px-3 text-right">TARGET</th>
-                            <th class="py-2.5 px-3 text-right">ACTUAL</th>
+                            <th class="py-2.5 px-3 text-right">ACTUAL (QTY)</th>
                             <th class="py-2.5 px-3 text-right">GAP</th>
                             <th class="py-2.5 px-3 text-right">DOWNTIME (MIN)</th>
                             <th class="py-2.5 px-3">REMARK / CAUSE</th>
@@ -194,7 +194,6 @@
             let currentData = [];
 
             try {
-                // Query ข้อมูลจาก Supabase ตาราง 'daily_production'
                 let query = supabaseClient.from('daily_production').select('*');
 
                 if (dateVal) query = query.eq('date', dateVal);
@@ -209,7 +208,6 @@
             } catch (err) {
                 console.error('Error loading Supabase data:', err.message);
             } finally {
-                // ทำการอัปเดต UI และ Target เสมอ ไม่ว่าจะดึงข้อมูลจาก Supabase สำเร็จหรือไม่
                 updateKPIs(currentData);
                 renderHourlyChart(currentData);
                 renderLinePerformance(currentData);
@@ -221,10 +219,11 @@
         function updateKPIs(data = []) {
             const shiftVal = document.getElementById('filterShift').value;
 
-            // ล็อคยอดเป้าหมาย: ALL = 5,000 Pcs | Day/Night = 1,250 Pcs
+            // ยอดเป้าหมาย: ALL = 5,000 Pcs | Day/Night = 1,250 Pcs
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
-            const totalActual = data.reduce((sum, item) => sum + (Number(item.actual) || 0), 0);
+            // ดึงข้อมูลยอดผลิตจริงจากคอลัมน์ qty (หรือ fallback ไปที่ actual หากไม่มี qty)
+            const totalActual = data.reduce((sum, item) => sum + (Number(item.qty ?? item.actual) || 0), 0);
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
@@ -249,7 +248,7 @@
                     timeSlotMap[slot] = { target: 0, actual: 0 };
                 }
                 timeSlotMap[slot].target += Number(item.target) || 0;
-                timeSlotMap[slot].actual += Number(item.actual) || 0;
+                timeSlotMap[slot].actual += Number(item.qty ?? item.actual) || 0;
             });
 
             const labels = Object.keys(timeSlotMap);
@@ -301,7 +300,7 @@
                 const line = item.line || 'Unknown';
                 if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
                 lineMap[line].target += Number(item.target) || 0;
-                lineMap[line].actual += Number(item.actual) || 0;
+                lineMap[line].actual += Number(item.qty ?? item.actual) || 0;
             });
 
             const lines = Object.keys(lineMap);
@@ -346,7 +345,7 @@
 
             data.forEach(r => {
                 const target = Number(r.target) || 0;
-                const actual = Number(r.actual) || 0;
+                const actual = Number(r.qty ?? r.actual) || 0;
                 const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
