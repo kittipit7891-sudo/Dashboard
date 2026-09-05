@@ -53,25 +53,25 @@
             <span class="text-xs font-semibold text-slate-300 flex items-center gap-1">🔍 ตัวกรองการผลิต:</span>
             
             <div class="flex items-center gap-1.5">
-                <label class="text-[11px] text-slate-400">ประจำวันที่:</label>
-                <input type="date" id="dailyDate" onchange="onFilterChange()" class="px-2.5 py-1 rounded-md text-xs">
+                <label class="text-[11px] text-slate-400">ประจำวันที่ (date):</label>
+                <input type="date" id="dailyDate" onchange="onDateChange()" class="px-2.5 py-1 rounded-md text-xs">
             </div>
 
             <div class="flex items-center gap-1.5">
-                <label class="text-[11px] text-slate-400">สายการผลิต (Line):</label>
+                <label class="text-[11px] text-slate-400">กะการทำงาน (shift):</label>
+                <!-- โหลดตัวเลือก Shift ตามคอลัมน์ shift ใน Supabase ของวันที่เลือก -->
+                <select id="filterShift" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
+                    <option value="ALL">ทุกกะ (All Shifts)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <label class="text-[11px] text-slate-400">สายการผลิต (line):</label>
                 <select id="filterLine" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทุกสายการผลิต (All Lines)</option>
                     <option value="Line 1">Line 1</option>
                     <option value="Line 2">Line 2</option>
                     <option value="Line 3">Line 3</option>
-                </select>
-            </div>
-
-            <div class="flex items-center gap-1.5">
-                <label class="text-[11px] text-slate-400">กะการทำงาน:</label>
-                <!-- Dropdown นี้จะถูกโหลดรายการกะจริงจาก Supabase อัตโนมัติ -->
-                <select id="filterShift" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
-                    <option value="ALL">ทุกกะ (All Shifts)</option>
                 </select>
             </div>
 
@@ -85,15 +85,15 @@
         <!-- 4 KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="card p-4 border-l-4 border-l-slate-400">
-                <p class="text-[11px] text-slate-400 font-medium">Target Output (เป้าหมาย)</p>
+                <p class="text-[11px] text-slate-400 font-medium">Target Output (คอลัมน์ target)</p>
                 <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">0 Pcs</h3>
-                <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block">● Target Plan ตามกะ/วันที่เลือก</span>
+                <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block">● รวมตาม date และ shift ที่เลือก</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-sky-400">
-                <p class="text-[11px] text-slate-400 font-medium">Actual Output (ผลิตได้จริง)</p>
+                <p class="text-[11px] text-slate-400 font-medium">Actual Output (คอลัมน์ qualified)</p>
                 <h3 class="text-2xl font-bold text-sky-400 mt-0.5" id="kpiActual">0 Pcs</h3>
-                <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● Completed Units (qualified)</span>
+                <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● ผลรวม qualified จาก Supabase</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-emerald-400">
@@ -116,12 +116,12 @@
             <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <div>
-                        <h3 class="text-sm font-semibold text-slate-100">Hourly / Shift Production Trend</h3>
-                        <p class="text-[11px] text-slate-400">เปรียบเทียบยอดผลิตจริงกับเป้าหมาย (Actual Qualified vs Plan)</p>
+                        <h3 class="text-sm font-semibold text-slate-100">Shift / Time Slot Production Trend</h3>
+                        <p class="text-[11px] text-slate-400">เปรียบเทียบ qualified กับ target รายกะ/ช่วงเวลา</p>
                     </div>
                     <div class="flex items-center gap-3 text-xs">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-sky-400"></span> Actual (Qualified)</span>
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-1 bg-amber-400"></span> Target Plan</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-sky-400"></span> Qualified (Actual)</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-1 bg-amber-400"></span> Target</span>
                     </div>
                 </div>
                 <div class="h-64 relative">
@@ -144,18 +144,19 @@
         <div class="card p-4">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-sm font-semibold text-slate-200">⏱️ Daily Production Log</h3>
-                <span class="text-[11px] text-sky-400">Real-time Supabase Data</span>
+                <span class="text-[11px] text-sky-400">ข้อมูลจาก Supabase ตาม date & shift</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-[11px] text-slate-300">
                     <thead class="text-slate-400 bg-[#1E2532] uppercase">
                         <tr>
+                            <th class="py-2.5 px-3">DATE</th>
                             <th class="py-2.5 px-3">SHIFT</th>
                             <th class="py-2.5 px-3">LINE</th>
                             <th class="py-2.5 px-3">WORKSTATION</th>
                             <th class="py-2.5 px-3">PRODUCT CODE</th>
                             <th class="py-2.5 px-3 text-right">TARGET</th>
-                            <th class="py-2.5 px-3 text-right">QUALIFIED (ACTUAL)</th>
+                            <th class="py-2.5 px-3 text-right">QUALIFIED</th>
                             <th class="py-2.5 px-3 text-right">GAP</th>
                             <th class="py-2.5 px-3 text-right">DOWNTIME (MIN)</th>
                         </tr>
@@ -180,44 +181,47 @@
 
         document.getElementById('dailyDate').value = '2026-09-01';
 
-        // ดึงรายการกะ (Shift) ที่มีอยู่ในฐานข้อมูลแบบไดนามิก
+        // 1. ดึงรายการกะ (shift) ที่มีอยู่จริงตามวันที่ (date) ที่เลือก
         async function loadShiftOptions() {
             const dateVal = document.getElementById('dailyDate').value;
             const shiftSelect = document.getElementById('filterShift');
             const currentSelected = shiftSelect.value;
 
             let query = supabaseClient.from('daily_production').select('shift');
-            if (dateVal) query = query.eq('date', dateVal);
+            if (dateVal) {
+                query = query.eq('date', dateVal);
+            }
 
             const { data, error } = await query;
 
             if (!error && data) {
-                // หาชื่อกะที่เป็น Unique ค่าจริงจาก Supabase
+                // ดึงรายการ shift ที่ไม่ซ้ำกัน
                 const uniqueShifts = [...new Set(data.map(item => item.shift).filter(Boolean))];
                 
-                let htmlOptions = `<option value="ALL">ทุกกะ (All Shifts)</option>`;
-                uniqueShifts.forEach(shift => {
-                    htmlOptions += `<option value="${shift}">${shift}</option>`;
+                let optionsHtml = `<option value="ALL">ทุกกะ (All Shifts)</option>`;
+                uniqueShifts.forEach(s => {
+                    optionsHtml += `<option value="${s}">${s}</option>`;
                 });
 
-                shiftSelect.innerHTML = htmlOptions;
+                shiftSelect.innerHTML = optionsHtml;
 
-                // รักษากะที่เลือกไว้เดิมถ้ายังคงมีอยู่
+                // ถ้ารายการกะเดิมยังมีในวันที่เลือกใหม่ ให้คงค่าไว้
                 if (uniqueShifts.includes(currentSelected)) {
                     shiftSelect.value = currentSelected;
                 }
             }
         }
 
-        async function onFilterChange() {
+        async function onDateChange() {
             await loadShiftOptions();
             await fetchAndRenderData();
         }
 
+        // 2. ดึงข้อมูล qualified และ target ตามเงื่อนไข date, shift, line จาก Supabase
         async function fetchAndRenderData() {
             const dateVal = document.getElementById('dailyDate').value;
-            const lineVal = document.getElementById('filterLine').value;
             const shiftVal = document.getElementById('filterShift').value;
+            const lineVal = document.getElementById('filterLine').value;
             const loading = document.getElementById('loadingStatus');
 
             loading.classList.remove('hidden');
@@ -226,12 +230,19 @@
             try {
                 let query = supabaseClient.from('daily_production').select('*');
 
-                if (dateVal) query = query.eq('date', dateVal);
-                if (lineVal !== 'ALL') query = query.ilike('line', `%${lineVal}%`);
-                
-                // กรองข้อมูลตรงตามกะการทำงานที่เลือกจาก Supabase
+                // กรองตาม date
+                if (dateVal) {
+                    query = query.eq('date', dateVal);
+                }
+
+                // กรองตาม shift
                 if (shiftVal !== 'ALL') {
                     query = query.eq('shift', shiftVal);
+                }
+
+                // กรองตาม line
+                if (lineVal !== 'ALL') {
+                    query = query.ilike('line', `%${lineVal}%`);
                 }
 
                 const { data, error } = await query;
@@ -239,19 +250,8 @@
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
-                    // ตรวจสอบการซ้ำของทั้งก้อนข้อมูล
-                    const rawSum = data.reduce((sum, item) => sum + getItemQualified(item), 0);
-                    let duplicateFactor = 1;
-
-                    if (rawSum % 2002 === 0 && rawSum > 2002) {
-                        duplicateFactor = rawSum / 2002;
-                    }
-
-                    currentData = data.map(item => ({
-                        ...item,
-                        calculated_qualified: getItemQualified(item) / duplicateFactor,
-                        calculated_target: (Number(item.target) || 0) / duplicateFactor
-                    }));
+                    console.log(`✅ ข้อมูลตรงตาม Date [${dateVal}] & Shift [${shiftVal}]: ${data.length} แถว`, data);
+                    currentData = data;
                 }
             } catch (err) {
                 console.error('❌ Exception Error:', err.message);
@@ -264,36 +264,24 @@
             }
         }
 
-        function getItemQualified(item) {
-            if (item.qualified !== undefined && item.qualified !== null) return Number(item.qualified) || 0;
-            if (item.qty !== undefined && item.qty !== null) return Number(item.qty) || 0;
-            if (item.actual !== undefined && item.actual !== null) return Number(item.actual) || 0;
-            return 1; 
-        }
-
+        // 3. รวมค่าจากคอลัมน์ qualified และ target โดยตรง
         function updateKPIs(data = []) {
-            const shiftVal = document.getElementById('filterShift').value;
-            
-            // รวมเป้าหมาย (Target) จากข้อมูลของกะนั้นๆ โดยตรงใน Supabase
-            const dbTargetSum = Math.round(data.reduce((sum, item) => sum + (item.calculated_target || Number(item.target) || 0), 0));
-            
-            // หากใน DB ไม่ได้ใสเป้าหมายไว้ ให้คำนวณตามสัดส่วนกะอัตโนมัติ
-            const totalTarget = dbTargetSum > 0 ? dbTargetSum : (shiftVal === 'ALL' ? 5000 : 2500);
-
-            const totalActual = Math.round(data.reduce((sum, item) => sum + (item.calculated_qualified || getItemQualified(item)), 0));
+            const totalQualified = data.reduce((sum, item) => sum + (Number(item.qualified) || 0), 0);
+            const totalTarget = data.reduce((sum, item) => sum + (Number(item.target) || 0), 0);
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
-            const achieveRate = totalTarget > 0 ? ((totalActual / totalTarget) * 100).toFixed(1) : '0.0';
+            const achieveRate = totalTarget > 0 ? ((totalQualified / totalTarget) * 100).toFixed(1) : '0.0';
 
             document.getElementById('kpiTarget').innerText = `${totalTarget.toLocaleString()} Pcs`;
-            document.getElementById('kpiActual').innerText = `${totalActual.toLocaleString()} Pcs`;
+            document.getElementById('kpiActual').innerText = `${totalQualified.toLocaleString()} Pcs`;
             document.getElementById('kpiAchievement').innerText = `${achieveRate}%`;
             document.getElementById('kpiDowntime').innerText = `${totalDowntime.toLocaleString()} Mins`;
             document.getElementById('kpiIncidents').innerText = `● ${incidents} Incidents Logged`;
             document.getElementById('kpiProgressBar').style.width = `${Math.min(achieveRate, 100)}%`;
         }
 
+        // 4. กราฟเปรียบเทียบ qualified vs target รายช่วงเวลา/กะ
         function renderHourlyChart(data) {
             const ctx = document.getElementById('hourlyChart').getContext('2d');
             if (hourlyChartInstance) hourlyChartInstance.destroy();
@@ -302,15 +290,15 @@
             data.forEach(item => {
                 const slot = item.time_slot || item.shift || 'N/A';
                 if (!timeSlotMap[slot]) {
-                    timeSlotMap[slot] = { target: 0, actual: 0 };
+                    timeSlotMap[slot] = { target: 0, qualified: 0 };
                 }
-                timeSlotMap[slot].target += (item.calculated_target || Number(item.target) || 0);
-                timeSlotMap[slot].actual += (item.calculated_qualified || getItemQualified(item));
+                timeSlotMap[slot].target += Number(item.target) || 0;
+                timeSlotMap[slot].qualified += Number(item.qualified) || 0;
             });
 
             const labels = Object.keys(timeSlotMap);
-            const targets = labels.map(l => Math.round(timeSlotMap[l].target));
-            const actuals = labels.map(l => Math.round(timeSlotMap[l].actual));
+            const targets = labels.map(l => timeSlotMap[l].target);
+            const qualifieds = labels.map(l => timeSlotMap[l].qualified);
 
             hourlyChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -319,7 +307,7 @@
                     datasets: [
                         {
                             type: 'line',
-                            label: 'Target Plan',
+                            label: 'Target',
                             data: targets,
                             borderColor: '#F59E0B',
                             borderWidth: 2,
@@ -329,8 +317,8 @@
                         },
                         {
                             type: 'bar',
-                            label: 'Actual Output (Qualified)',
-                            data: actuals,
+                            label: 'Qualified (Actual)',
+                            data: qualifieds,
                             backgroundColor: '#38BDF8',
                             borderRadius: 6
                         }
@@ -348,6 +336,7 @@
             });
         }
 
+        // 5. กราฟเปรียบเทียบประสิทธิภาพราย Line
         function renderLinePerformance(data) {
             const ctx = document.getElementById('linePerformanceChart').getContext('2d');
             if (linePerformanceInstance) linePerformanceInstance.destroy();
@@ -355,16 +344,16 @@
             const lineMap = {};
             data.forEach(item => {
                 const line = item.line || 'Unknown';
-                if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
-                lineMap[line].target += (item.calculated_target || Number(item.target) || 0);
-                lineMap[line].actual += (item.calculated_qualified || getItemQualified(item));
+                if (!lineMap[line]) lineMap[line] = { target: 0, qualified: 0 };
+                lineMap[line].target += Number(item.target) || 0;
+                lineMap[line].qualified += Number(item.qualified) || 0;
             });
 
             const lines = Object.keys(lineMap);
             const effRates = lines.map(line => {
                 const t = lineMap[line].target;
-                const a = lineMap[line].actual;
-                return t > 0 ? ((a / t) * 100).toFixed(1) : (a > 0 ? 100 : 0);
+                const q = lineMap[line].qualified;
+                return t > 0 ? ((q / t) * 100).toFixed(1) : (q > 0 ? 100 : 0);
             });
 
             linePerformanceInstance = new Chart(ctx, {
@@ -391,19 +380,20 @@
             });
         }
 
+        // 6. ตารางแสดงรายการข้อมูล qualified ตาม date และ shift
         function renderHourlyTable(data) {
             const tbody = document.getElementById('hourlyTableBody');
             tbody.innerHTML = '';
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตาม date และ shift ที่เลือก</td></tr>`;
                 return;
             }
 
             data.forEach(r => {
-                const target = Math.round(r.calculated_target || Number(r.target) || 0);
-                const actual = Math.round(r.calculated_qualified || getItemQualified(r));
-                const gap = actual - target;
+                const target = Number(r.target) || 0;
+                const qualified = Number(r.qualified) || 0;
+                const gap = qualified - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
                 
@@ -413,12 +403,13 @@
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
+                        <td class="py-2 px-3 text-slate-400 font-mono">${r.date || '-'}</td>
                         <td class="py-2 px-3 font-semibold text-white whitespace-nowrap">${shiftName}</td>
                         <td class="py-2 px-3 text-slate-300">${r.line || '-'}</td>
                         <td class="py-2 px-3 text-slate-400">${workstation}</td>
                         <td class="py-2 px-3 text-amber-400 font-medium">${modelName}</td>
-                        <td class="py-2 px-3 text-right font-medium">${target.toLocaleString()}</td>
-                        <td class="py-2 px-3 text-right font-bold text-sky-400">${actual.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right font-medium text-slate-300">${target.toLocaleString()}</td>
+                        <td class="py-2 px-3 text-right font-bold text-sky-400">${qualified.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold ${gapClass}">${gapText}</td>
                         <td class="py-2 px-3 text-right ${r.downtime > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${r.downtime || 0} min</td>
                     </tr>
