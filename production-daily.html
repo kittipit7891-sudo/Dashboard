@@ -59,7 +59,6 @@
 
             <div class="flex items-center gap-1.5">
                 <label class="text-[11px] text-slate-400">กะการทำงาน (shift):</label>
-                <!-- โหลดตัวเลือก Shift ตามคอลัมน์ shift ใน Supabase ของวันที่เลือก -->
                 <select id="filterShift" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทุกกะ (All Shifts)</option>
                 </select>
@@ -84,10 +83,11 @@
 
         <!-- 4 KPI Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- ปรับหัวข้อการ์ดเป็น Target และตั้งเป้าหมายแบบไดนามิก 2,500 / 1,250 Pcs -->
             <div class="card p-4 border-l-4 border-l-slate-400">
-                <p class="text-[11px] text-slate-400 font-medium">Target Output (คอลัมน์ target)</p>
-                <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">0 Pcs</h3>
-                <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block">● รวมตาม date และ shift ที่เลือก</span>
+                <p class="text-[11px] text-slate-400 font-medium">Target</p>
+                <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">2,500 Pcs</h3>
+                <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block" id="kpiTargetSubtext">● Target Plan รายวัน</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-sky-400">
@@ -181,7 +181,6 @@
 
         document.getElementById('dailyDate').value = '2026-09-01';
 
-        // 1. ดึงรายการกะ (shift) ที่มีอยู่จริงตามวันที่ (date) ที่เลือก
         async function loadShiftOptions() {
             const dateVal = document.getElementById('dailyDate').value;
             const shiftSelect = document.getElementById('filterShift');
@@ -195,7 +194,6 @@
             const { data, error } = await query;
 
             if (!error && data) {
-                // ดึงรายการ shift ที่ไม่ซ้ำกัน
                 const uniqueShifts = [...new Set(data.map(item => item.shift).filter(Boolean))];
                 
                 let optionsHtml = `<option value="ALL">ทุกกะ (All Shifts)</option>`;
@@ -205,7 +203,6 @@
 
                 shiftSelect.innerHTML = optionsHtml;
 
-                // ถ้ารายการกะเดิมยังมีในวันที่เลือกใหม่ ให้คงค่าไว้
                 if (uniqueShifts.includes(currentSelected)) {
                     shiftSelect.value = currentSelected;
                 }
@@ -217,7 +214,6 @@
             await fetchAndRenderData();
         }
 
-        // 2. ดึงข้อมูล qualified และ target ตามเงื่อนไข date, shift, line จาก Supabase
         async function fetchAndRenderData() {
             const dateVal = document.getElementById('dailyDate').value;
             const shiftVal = document.getElementById('filterShift').value;
@@ -230,17 +226,14 @@
             try {
                 let query = supabaseClient.from('daily_production').select('*');
 
-                // กรองตาม date
                 if (dateVal) {
                     query = query.eq('date', dateVal);
                 }
 
-                // กรองตาม shift
                 if (shiftVal !== 'ALL') {
                     query = query.eq('shift', shiftVal);
                 }
 
-                // กรองตาม line
                 if (lineVal !== 'ALL') {
                     query = query.ilike('line', `%${lineVal}%`);
                 }
@@ -250,7 +243,6 @@
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
-                    console.log(`✅ ข้อมูลตรงตาม Date [${dateVal}] & Shift [${shiftVal}]: ${data.length} แถว`, data);
                     currentData = data;
                 }
             } catch (err) {
@@ -264,16 +256,24 @@
             }
         }
 
-        // 3. รวมค่าจากคอลัมน์ qualified และ target โดยตรง
+        // ล็อกเป้าหมาย Target เป็น 2,500 (กรณีเลือกทุกกะ) และ 1,250 (เมื่อเลือกเฉพาะกะ)
         function updateKPIs(data = []) {
+            const shiftVal = document.getElementById('filterShift').value;
+            
+            // กำหนดเป้าหมาย Target ล็อกค่าตามกะการทำงาน
+            const totalTarget = (shiftVal === 'ALL') ? 2500 : 1250;
+
             const totalQualified = data.reduce((sum, item) => sum + (Number(item.qualified) || 0), 0);
-            const totalTarget = data.reduce((sum, item) => sum + (Number(item.target) || 0), 0);
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
             const achieveRate = totalTarget > 0 ? ((totalQualified / totalTarget) * 100).toFixed(1) : '0.0';
 
             document.getElementById('kpiTarget').innerText = `${totalTarget.toLocaleString()} Pcs`;
+            document.getElementById('kpiTargetSubtext').innerText = shiftVal === 'ALL' 
+                ? '● Target Plan รวมรายวัน (2,500 Pcs)' 
+                : `● Target Plan ประจำ ${shiftVal} (1,250 Pcs)`;
+
             document.getElementById('kpiActual').innerText = `${totalQualified.toLocaleString()} Pcs`;
             document.getElementById('kpiAchievement').innerText = `${achieveRate}%`;
             document.getElementById('kpiDowntime').innerText = `${totalDowntime.toLocaleString()} Mins`;
@@ -281,7 +281,6 @@
             document.getElementById('kpiProgressBar').style.width = `${Math.min(achieveRate, 100)}%`;
         }
 
-        // 4. กราฟเปรียบเทียบ qualified vs target รายช่วงเวลา/กะ
         function renderHourlyChart(data) {
             const ctx = document.getElementById('hourlyChart').getContext('2d');
             if (hourlyChartInstance) hourlyChartInstance.destroy();
@@ -336,24 +335,24 @@
             });
         }
 
-        // 5. กราฟเปรียบเทียบประสิทธิภาพราย Line
         function renderLinePerformance(data) {
             const ctx = document.getElementById('linePerformanceChart').getContext('2d');
             if (linePerformanceInstance) linePerformanceInstance.destroy();
 
+            const shiftVal = document.getElementById('filterShift').value;
+            const lockedTarget = (shiftVal === 'ALL') ? 2500 : 1250;
+
             const lineMap = {};
             data.forEach(item => {
                 const line = item.line || 'Unknown';
-                if (!lineMap[line]) lineMap[line] = { target: 0, qualified: 0 };
-                lineMap[line].target += Number(item.target) || 0;
+                if (!lineMap[line]) lineMap[line] = { qualified: 0 };
                 lineMap[line].qualified += Number(item.qualified) || 0;
             });
 
             const lines = Object.keys(lineMap);
             const effRates = lines.map(line => {
-                const t = lineMap[line].target;
                 const q = lineMap[line].qualified;
-                return t > 0 ? ((q / t) * 100).toFixed(1) : (q > 0 ? 100 : 0);
+                return lockedTarget > 0 ? ((q / lockedTarget) * 100).toFixed(1) : 0;
             });
 
             linePerformanceInstance = new Chart(ctx, {
@@ -380,7 +379,6 @@
             });
         }
 
-        // 6. ตารางแสดงรายการข้อมูล qualified ตาม date และ shift
         function renderHourlyTable(data) {
             const tbody = document.getElementById('hourlyTableBody');
             tbody.innerHTML = '';
