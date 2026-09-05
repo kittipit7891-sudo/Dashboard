@@ -54,7 +54,7 @@
             
             <div class="flex items-center gap-1.5">
                 <label class="text-[11px] text-slate-400">ประจำวันที่:</label>
-                <input type="date" id="dailyDate" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
+                <input type="date" id="dailyDate" onchange="onFilterChange()" class="px-2.5 py-1 rounded-md text-xs">
             </div>
 
             <div class="flex items-center gap-1.5">
@@ -69,10 +69,9 @@
 
             <div class="flex items-center gap-1.5">
                 <label class="text-[11px] text-slate-400">กะการทำงาน:</label>
+                <!-- Dropdown นี้จะถูกโหลดรายการกะจริงจาก Supabase อัตโนมัติ -->
                 <select id="filterShift" onchange="fetchAndRenderData()" class="px-2.5 py-1 rounded-md text-xs">
                     <option value="ALL">ทุกกะ (All Shifts)</option>
-                    <option value="Day">Day Shift</option>
-                    <option value="Night">Night Shift</option>
                 </select>
             </div>
 
@@ -87,8 +86,8 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="card p-4 border-l-4 border-l-slate-400">
                 <p class="text-[11px] text-slate-400 font-medium">Target Output (เป้าหมาย)</p>
-                <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">5,000 Pcs</h3>
-                <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block">● Daily Production Plan</span>
+                <h3 class="text-2xl font-bold text-white mt-0.5" id="kpiTarget">0 Pcs</h3>
+                <span class="text-[10px] text-slate-400 font-semibold mt-1 inline-block">● Target Plan ตามกะ/วันที่เลือก</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-sky-400">
@@ -179,8 +178,41 @@
         let hourlyChartInstance = null;
         let linePerformanceInstance = null;
 
-        // กำหนดวันที่เริ่มต้นเป็น 2026-09-01
         document.getElementById('dailyDate').value = '2026-09-01';
+
+        // ดึงรายการกะ (Shift) ที่มีอยู่ในฐานข้อมูลแบบไดนามิก
+        async function loadShiftOptions() {
+            const dateVal = document.getElementById('dailyDate').value;
+            const shiftSelect = document.getElementById('filterShift');
+            const currentSelected = shiftSelect.value;
+
+            let query = supabaseClient.from('daily_production').select('shift');
+            if (dateVal) query = query.eq('date', dateVal);
+
+            const { data, error } = await query;
+
+            if (!error && data) {
+                // หาชื่อกะที่เป็น Unique ค่าจริงจาก Supabase
+                const uniqueShifts = [...new Set(data.map(item => item.shift).filter(Boolean))];
+                
+                let htmlOptions = `<option value="ALL">ทุกกะ (All Shifts)</option>`;
+                uniqueShifts.forEach(shift => {
+                    htmlOptions += `<option value="${shift}">${shift}</option>`;
+                });
+
+                shiftSelect.innerHTML = htmlOptions;
+
+                // รักษากะที่เลือกไว้เดิมถ้ายังคงมีอยู่
+                if (uniqueShifts.includes(currentSelected)) {
+                    shiftSelect.value = currentSelected;
+                }
+            }
+        }
+
+        async function onFilterChange() {
+            await loadShiftOptions();
+            await fetchAndRenderData();
+        }
 
         async function fetchAndRenderData() {
             const dateVal = document.getElementById('dailyDate').value;
@@ -196,28 +228,29 @@
 
                 if (dateVal) query = query.eq('date', dateVal);
                 if (lineVal !== 'ALL') query = query.ilike('line', `%${lineVal}%`);
-                if (shiftVal !== 'ALL') query = query.ilike('shift', `%${shiftVal}%`);
+                
+                // กรองข้อมูลตรงตามกะการทำงานที่เลือกจาก Supabase
+                if (shiftVal !== 'ALL') {
+                    query = query.eq('shift', shiftVal);
+                }
 
                 const { data, error } = await query;
 
                 if (error) {
                     console.error('❌ Supabase Query Error:', error.message);
                 } else if (data) {
-                    // ตรวจหาจำนวนชุดข้อมูลที่ Import ซ้ำ
+                    // ตรวจสอบการซ้ำของทั้งก้อนข้อมูล
                     const rawSum = data.reduce((sum, item) => sum + getItemQualified(item), 0);
                     let duplicateFactor = 1;
 
-                    // ถ้าผลรวมดิบเท่ากับ 6,006 หรือเป็นทวีคูณ 3 เท่าของ 2,002 ให้หาร 3
                     if (rawSum % 2002 === 0 && rawSum > 2002) {
                         duplicateFactor = rawSum / 2002;
                     }
 
-                    console.log(`✅ พบข้อมูล ${data.length} แถว | ยอดดิบ: ${rawSum} | ตัวหารชุดซ้ำ: ${duplicateFactor}`);
-
-                    // ปรับค่า qualified ของแต่ละแถวตามสัดส่วนการซ้ำจริง
                     currentData = data.map(item => ({
                         ...item,
-                        calculated_qualified: getItemQualified(item) / duplicateFactor
+                        calculated_qualified: getItemQualified(item) / duplicateFactor,
+                        calculated_target: (Number(item.target) || 0) / duplicateFactor
                     }));
                 }
             } catch (err) {
@@ -240,7 +273,12 @@
 
         function updateKPIs(data = []) {
             const shiftVal = document.getElementById('filterShift').value;
-            const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
+            
+            // รวมเป้าหมาย (Target) จากข้อมูลของกะนั้นๆ โดยตรงใน Supabase
+            const dbTargetSum = Math.round(data.reduce((sum, item) => sum + (item.calculated_target || Number(item.target) || 0), 0));
+            
+            // หากใน DB ไม่ได้ใสเป้าหมายไว้ ให้คำนวณตามสัดส่วนกะอัตโนมัติ
+            const totalTarget = dbTargetSum > 0 ? dbTargetSum : (shiftVal === 'ALL' ? 5000 : 2500);
 
             const totalActual = Math.round(data.reduce((sum, item) => sum + (item.calculated_qualified || getItemQualified(item)), 0));
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
@@ -266,7 +304,7 @@
                 if (!timeSlotMap[slot]) {
                     timeSlotMap[slot] = { target: 0, actual: 0 };
                 }
-                timeSlotMap[slot].target += Number(item.target) || 0;
+                timeSlotMap[slot].target += (item.calculated_target || Number(item.target) || 0);
                 timeSlotMap[slot].actual += (item.calculated_qualified || getItemQualified(item));
             });
 
@@ -318,7 +356,7 @@
             data.forEach(item => {
                 const line = item.line || 'Unknown';
                 if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
-                lineMap[line].target += Number(item.target) || 0;
+                lineMap[line].target += (item.calculated_target || Number(item.target) || 0);
                 lineMap[line].actual += (item.calculated_qualified || getItemQualified(item));
             });
 
@@ -363,7 +401,7 @@
             }
 
             data.forEach(r => {
-                const target = Number(r.target) || 0;
+                const target = Math.round(r.calculated_target || Number(r.target) || 0);
                 const actual = Math.round(r.calculated_qualified || getItemQualified(r));
                 const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
@@ -388,7 +426,10 @@
             });
         }
 
-        window.onload = fetchAndRenderData;
+        window.onload = async () => {
+            await loadShiftOptions();
+            await fetchAndRenderData();
+        };
     </script>
 </body>
 </html>
