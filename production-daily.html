@@ -94,7 +94,7 @@
             <div class="card p-4 border-l-4 border-l-sky-400">
                 <p class="text-[11px] text-slate-400 font-medium">Actual Output (ผลิตได้จริง)</p>
                 <h3 class="text-2xl font-bold text-sky-400 mt-0.5" id="kpiActual">0 Pcs</h3>
-                <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● Completed Units (qty)</span>
+                <span class="text-[10px] text-sky-300 font-semibold mt-1 inline-block">● Completed Units (qualified)</span>
             </div>
 
             <div class="card p-4 border-l-4 border-l-emerald-400">
@@ -117,11 +117,11 @@
             <div class="card p-4 lg:col-span-2 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <div>
-                        <h3 class="text-sm font-semibold text-slate-100">Hourly Production Trend</h3>
-                        <p class="text-[11px] text-slate-400">เปรียบเทียบยอดผลิตจริงกับเป้าหมายรายชั่วโมง (Actual vs Plan)</p>
+                        <h3 class="text-sm font-semibold text-slate-100">Hourly / Shift Production Trend</h3>
+                        <p class="text-[11px] text-slate-400">เปรียบเทียบยอดผลิตจริงกับเป้าหมาย (Actual Qualified vs Plan)</p>
                     </div>
                     <div class="flex items-center gap-3 text-xs">
-                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-sky-400"></span> Actual</span>
+                        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-sky-400"></span> Actual (Qualified)</span>
                         <span class="flex items-center gap-1"><span class="w-2.5 h-1 bg-amber-400"></span> Target Plan</span>
                     </div>
                 </div>
@@ -132,7 +132,7 @@
 
             <div class="card p-4 flex flex-col justify-between">
                 <div>
-                    <h3 class="text-sm font-semibold text-slate-100 mb-0.5">Line Performance (% OEE / Plan)</h3>
+                    <h3 class="text-sm font-semibold text-slate-100 mb-0.5">Line Performance (% Achieved)</h3>
                     <p class="text-[11px] text-slate-400 mb-2">ประสิทธิภาพแยกตามสายการผลิต</p>
                 </div>
                 <div class="h-64 relative">
@@ -141,24 +141,24 @@
             </div>
         </div>
 
-        <!-- Table: Hourly Production Log -->
+        <!-- Table: Daily Production Log -->
         <div class="card p-4">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-semibold text-slate-200">⏱️ Hourly Production & Downtime Log</h3>
+                <h3 class="text-sm font-semibold text-slate-200">⏱️ Daily Production Log</h3>
                 <span class="text-[11px] text-sky-400">Real-time Supabase Data</span>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-[11px] text-slate-300">
                     <thead class="text-slate-400 bg-[#1E2532] uppercase">
                         <tr>
-                            <th class="py-2.5 px-3">TIME SLOT / SHIFT</th>
+                            <th class="py-2.5 px-3">SHIFT</th>
                             <th class="py-2.5 px-3">LINE</th>
-                            <th class="py-2.5 px-3">MODEL / SKU</th>
+                            <th class="py-2.5 px-3">WORKSTATION</th>
+                            <th class="py-2.5 px-3">PRODUCT CODE</th>
                             <th class="py-2.5 px-3 text-right">TARGET</th>
-                            <th class="py-2.5 px-3 text-right">ACTUAL (QTY)</th>
+                            <th class="py-2.5 px-3 text-right">QUALIFIED (ACTUAL)</th>
                             <th class="py-2.5 px-3 text-right">GAP</th>
                             <th class="py-2.5 px-3 text-right">DOWNTIME (MIN)</th>
-                            <th class="py-2.5 px-3">WORKSTATION</th>
                         </tr>
                     </thead>
                     <tbody id="hourlyTableBody" class="divide-y divide-[#262D3D]">
@@ -194,17 +194,14 @@
             try {
                 let query = supabaseClient.from('daily_production').select('*');
 
-                // 1. กรองด้วยวันที่ตรงๆ ตาม Format text ใน DB (YYYY-MM-DD)
                 if (dateVal) {
                     query = query.eq('date', dateVal);
                 }
 
-                // 2. ใช้ ilike ค้นหาข้อความบางส่วนของ line (รองรับทั้ง "Production Line 1" และ "Line 1")
                 if (lineVal !== 'ALL') {
                     query = query.ilike('line', `%${lineVal}%`);
                 }
 
-                // 3. กรอง Shift แบบ Partial Match
                 if (shiftVal !== 'ALL') {
                     query = query.ilike('shift', `%${shiftVal}%`);
                 }
@@ -228,11 +225,11 @@
             }
         }
 
-        function getItemQty(item) {
-            // หากมีคอลัมน์ qty/actual ให้ใช้ค่านั้น หากไม่มีให้นับเป็น 1 ชิ้นต่อ 1 แถว (Row Count)
+        // ฟังก์ชันดึงค่าวัดผลผลิตจริงจากคอลัมน์ qualified (รองรับการ fallback ไปยังชื่อคอลัมน์อื่น)
+        function getItemQualified(item) {
+            if (item.qualified !== undefined && item.qualified !== null) return Number(item.qualified) || 0;
             if (item.qty !== undefined && item.qty !== null) return Number(item.qty) || 0;
             if (item.actual !== undefined && item.actual !== null) return Number(item.actual) || 0;
-            if (item.quantity !== undefined && item.quantity !== null) return Number(item.quantity) || 0;
             return 1; 
         }
 
@@ -240,7 +237,8 @@
             const shiftVal = document.getElementById('filterShift').value;
             const totalTarget = (shiftVal === 'ALL') ? 5000 : 1250;
 
-            const totalActual = data.reduce((sum, item) => sum + getItemQty(item), 0);
+            // ผลรวมคอลัมน์ qualified ทั้งหมดของวันที่เลือก
+            const totalActual = data.reduce((sum, item) => sum + getItemQualified(item), 0);
             const totalDowntime = data.reduce((sum, item) => sum + (Number(item.downtime) || 0), 0);
             const incidents = data.filter(item => Number(item.downtime) > 0).length;
 
@@ -265,7 +263,7 @@
                     timeSlotMap[slot] = { target: 0, actual: 0 };
                 }
                 timeSlotMap[slot].target += Number(item.target) || 0;
-                timeSlotMap[slot].actual += getItemQty(item);
+                timeSlotMap[slot].actual += getItemQualified(item);
             });
 
             const labels = Object.keys(timeSlotMap);
@@ -289,7 +287,7 @@
                         },
                         {
                             type: 'bar',
-                            label: 'Actual Output',
+                            label: 'Actual Output (Qualified)',
                             data: actuals,
                             backgroundColor: '#38BDF8',
                             borderRadius: 6
@@ -317,7 +315,7 @@
                 const line = item.line || 'Unknown';
                 if (!lineMap[line]) lineMap[line] = { target: 0, actual: 0 };
                 lineMap[line].target += Number(item.target) || 0;
-                lineMap[line].actual += getItemQty(item);
+                lineMap[line].actual += getItemQualified(item);
             });
 
             const lines = Object.keys(lineMap);
@@ -356,30 +354,31 @@
             tbody.innerHTML = '';
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก (ลองเลือกเปลี่ยนวันที่ในตัวกรอง)</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-500">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>`;
                 return;
             }
 
             data.forEach(r => {
                 const target = Number(r.target) || 0;
-                const actual = getItemQty(r);
+                const actual = getItemQualified(r);
                 const gap = actual - target;
                 const gapClass = gap >= 0 ? 'text-emerald-400' : 'text-rose-400';
                 const gapText = gap >= 0 ? `+${gap}` : `${gap}`;
                 
-                const modelName = r.product_sku || r.product_code || r.product_cc || r.model || '-';
-                const timeSlot = r.time_slot || r.shift || '-';
+                const modelName = r.product_cc || r.product_sku || r.product_code || r.model || '-';
+                const shiftName = r.shift || '-';
+                const workstation = r.workstation || r.remark || '-';
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1E2532] transition">
-                        <td class="py-2 px-3 font-semibold text-white whitespace-nowrap">${timeSlot}</td>
+                        <td class="py-2 px-3 font-semibold text-white whitespace-nowrap">${shiftName}</td>
                         <td class="py-2 px-3 text-slate-300">${r.line || '-'}</td>
+                        <td class="py-2 px-3 text-slate-400">${workstation}</td>
                         <td class="py-2 px-3 text-amber-400 font-medium">${modelName}</td>
                         <td class="py-2 px-3 text-right font-medium">${target.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold text-sky-400">${actual.toLocaleString()}</td>
                         <td class="py-2 px-3 text-right font-bold ${gapClass}">${gapText}</td>
                         <td class="py-2 px-3 text-right ${r.downtime > 0 ? 'text-rose-400 font-bold' : 'text-slate-400'}">${r.downtime || 0} min</td>
-                        <td class="py-2 px-3 text-slate-400 truncate max-w-[180px]">${r.workstation || r.remark || '-'}</td>
                     </tr>
                 `;
             });
